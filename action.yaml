@@ -1,0 +1,220 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2025 The Linux Foundation
+
+name: "Packer Build Action"
+description: "Execute Packer validate or build operations via a bastion host"
+author: "The Linux Foundation"
+
+inputs:
+  # Operation Mode
+  mode:
+    description: "Operation mode: 'validate' (syntax check) or 'build' (full build)"
+    required: true
+    default: "validate"
+
+  # Bastion Connection (from openstack-bastion-action outputs)
+  bastion_ip:
+    description: "Bastion Tailscale IP address (required for build mode)"
+    required: false
+    default: ""
+  bastion_ssh_user:
+    description: "SSH user for bastion connection"
+    required: false
+    default: "ubuntu"
+
+  # Packer Configuration
+  packer_template:
+    description: "Path to Packer template file (auto-discovers if empty)"
+    required: false
+    default: ""
+  packer_vars_file:
+    description: "Path to Packer variables file (auto-discovers if empty)"
+    required: false
+    default: ""
+  packer_working_dir:
+    description: "Working directory containing Packer files"
+    required: false
+    default: "."
+  path_prefix:
+    description: "Directory path prefix for action execution"
+    required: false
+    default: "target-repo"
+  packer_version:
+    description: "Packer version to use"
+    required: false
+    default: "1.11.2"
+
+  # Cloud Configuration Files (base64 encoded)
+  cloud_env_json:
+    description: "Cloud environment JSON config (base64 encoded)"
+    required: false
+    default: ""
+  clouds_yaml:
+    description: "OpenStack clouds.yaml config (base64 encoded)"
+    required: false
+    default: ""
+
+  # OpenStack Credentials (for generating cloud configs)
+  openstack_auth_url:
+    description: "OpenStack auth URL"
+    required: false
+    default: ""
+  openstack_project_id:
+    description: "OpenStack project/tenant ID"
+    required: false
+    default: ""
+  openstack_username:
+    description: "OpenStack username"
+    required: false
+    default: ""
+  openstack_password:
+    description: "OpenStack password (base64 decoded if needed)"
+    required: false
+    default: ""
+  openstack_region:
+    description: "OpenStack region"
+    required: false
+    default: "ca-ymq-1"
+  openstack_network_id:
+    description: "OpenStack network UUID for builds"
+    required: false
+    default: ""
+
+  # Build Environment Configuration
+  ansible_version:
+    description: "Ansible version to install"
+    required: false
+    default: "2.17.0"
+  python_version:
+    description: "Python version for build environment"
+    required: false
+    default: "3.11"
+
+outputs:
+  validation_result:
+    description: "Validation result summary"
+    value: ${{ steps.execute.outputs.validation_result }}
+  image_name:
+    description: "Built image name (build mode only)"
+    value: ${{ steps.execute.outputs.image_name }}
+  image_id:
+    description: "Built image ID (build mode only)"
+    value: ${{ steps.execute.outputs.image_id }}
+  build_status:
+    description: "Build completion status"
+    value: ${{ steps.execute.outputs.build_status }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Validate inputs
+      shell: bash
+      run: |
+        if [[ "${{ inputs.mode }}" == "build" && -z "${{ inputs.bastion_ip }}" ]]; then
+          echo "❌ Error: bastion_ip is required for build mode"
+          exit 1
+        fi
+        echo "✅ Input validation passed"
+
+    - name: Setup Python
+      uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+      with:
+        python-version: ${{ inputs.python_version }}
+
+    - name: Setup Packer
+      uses: hashicorp/setup-packer@1aa358be5cf73883762b302a3a03abd66e75b232 # v3.1.0
+      with:
+        version: ${{ inputs.packer_version }}
+
+    - name: Install Ansible and dependencies
+      shell: bash
+      run: |
+        echo "📦 Installing Ansible ${{ inputs.ansible_version }}..."
+        pip install --upgrade pip
+        pip install ansible==${{ inputs.ansible_version }} jinja2
+        ansible --version
+
+    - name: Install Ansible Galaxy roles
+      shell: bash
+      working-directory: ${{ inputs.path_prefix }}/${{ inputs.packer_working_dir }}
+      run: |
+        if [[ -f "common-packer/requirements.yaml" ]]; then
+          echo "📦 Installing Ansible Galaxy roles..."
+          ansible-galaxy role install -r common-packer/requirements.yaml -p common-packer/roles
+        elif [[ -f "requirements.yaml" ]]; then
+          echo "📦 Installing Ansible Galaxy roles..."
+          ansible-galaxy role install -r requirements.yaml -p roles
+        else
+          echo "ℹ️  No Ansible Galaxy requirements found, skipping..."
+        fi
+
+    - name: Setup cloud configuration
+      shell: bash
+      working-directory: ${{ inputs.path_prefix }}/${{ inputs.packer_working_dir }}
+      run: |
+        # Create cloud-env.json if not provided
+        if [[ -n "${{ inputs.cloud_env_json }}" ]]; then
+          echo "${{ inputs.cloud_env_json }}" | base64 -d > cloud-env.json
+        elif [[ -n "${{ inputs.openstack_auth_url }}" ]]; then
+          cat > cloud-env.json <<EOF
+        {
+          "cloud_auth_url": "${{ inputs.openstack_auth_url }}",
+          "cloud_tenant": "${{ inputs.openstack_project_id }}",
+          "cloud_user": "${{ inputs.openstack_username }}",
+          "cloud_pass": "${{ inputs.openstack_password }}",
+          "cloud_network": "${{ inputs.openstack_network_id }}",
+          "ssh_proxy_host": "${{ inputs.bastion_ip }}"
+        }
+        EOF
+        fi
+
+        # Create clouds.yaml if not provided
+        if [[ -n "${{ inputs.clouds_yaml }}" ]]; then
+          mkdir -p ~/.config/openstack
+          echo "${{ inputs.clouds_yaml }}" | base64 -d > ~/.config/openstack/clouds.yaml
+        fi
+
+    - name: Execute Packer operation
+      id: execute
+      shell: bash
+      working-directory: ${{ inputs.path_prefix }}/${{ inputs.packer_working_dir }}
+      run: |
+        set -e
+        
+        MODE="${{ inputs.mode }}"
+        TEMPLATE="${{ inputs.packer_template }}"
+        VARS_FILE="${{ inputs.packer_vars_file }}"
+        
+        if [[ "$MODE" == "validate" ]]; then
+          echo "🔍 Running Packer validation..."
+          ${{ github.action_path }}/scripts/validate-packer.sh
+          echo "validation_result=success" >> $GITHUB_OUTPUT
+        elif [[ "$MODE" == "build" ]]; then
+          echo "🔨 Running Packer build..."
+          
+          # Build via bastion
+          if [[ -z "$TEMPLATE" || -z "$VARS_FILE" ]]; then
+            echo "❌ Error: packer_template and packer_vars_file required for build mode"
+            exit 1
+          fi
+          
+          PACKER_CMD="packer build"
+          PACKER_CMD="$PACKER_CMD -var-file=cloud-env.json"
+          PACKER_CMD="$PACKER_CMD -var-file=$VARS_FILE"
+          PACKER_CMD="$PACKER_CMD -var bastion_host=${{ inputs.bastion_ip }}"
+          PACKER_CMD="$PACKER_CMD $TEMPLATE"
+          
+          echo "Executing: $PACKER_CMD"
+          eval $PACKER_CMD
+          
+          echo "build_status=success" >> $GITHUB_OUTPUT
+          echo "image_name=Built successfully" >> $GITHUB_OUTPUT
+        else
+          echo "❌ Error: Invalid mode '$MODE'"
+          exit 1
+        fi
+
+branding:
+  icon: "package"
+  color: "blue"
