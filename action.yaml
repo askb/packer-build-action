@@ -175,6 +175,24 @@ runs:
           echo "${{ inputs.clouds_yaml }}" | base64 -d > ~/.config/openstack/clouds.yaml
         fi
 
+    - name: Initialize Packer plugins
+      shell: bash
+      working-directory: ${{ inputs.path_prefix }}/${{ inputs.packer_working_dir }}
+      run: |
+        set -e
+        echo "🔌 Initializing Packer plugins..."
+        
+        TEMPLATE="${{ inputs.packer_template }}"
+        if [[ -n "$TEMPLATE" ]]; then
+          packer init "$TEMPLATE"
+        else
+          # Init all templates if no specific template provided
+          for template in $(find . -name "*.pkr.hcl" -type f); do
+            echo "Initializing $template..."
+            packer init "$template"
+          done
+        fi
+
     - name: Execute Packer operation
       id: execute
       shell: bash
