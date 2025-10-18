@@ -112,13 +112,21 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Validate inputs
+    - name: Validate inputs and install dependencies
       shell: bash
       run: |
         if [[ "${{ inputs.mode }}" == "build" && -z "${{ inputs.bastion_ip }}" ]]; then
           echo "❌ Error: bastion_ip is required for build mode"
           exit 1
         fi
+        
+        # Install jq if not available (needed for cloud-env.json generation)
+        if ! command -v jq &> /dev/null; then
+          echo "📦 Installing jq..."
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq jq
+        fi
+        
         echo "✅ Input validation passed"
 
     - name: Setup Python
@@ -171,22 +179,25 @@ runs:
             echo "ℹ️  Using password as-is (not base64 encoded)"
           fi
           
-          # Create cloud-env.json with properly decoded password
-          cat > cloud-env.json <<'EOF'
-        {
-          "cloud_auth_url": "${{ inputs.openstack_auth_url }}",
-          "cloud_tenant_name": "${{ inputs.openstack_project_id }}",
-          "cloud_domain_name": "${{ inputs.openstack_domain_name }}",
-          "cloud_username": "${{ inputs.openstack_username }}",
-          "cloud_password": "PLACEHOLDER_PASSWORD",
-          "cloud_network": "${{ inputs.openstack_network_id }}",
-          "ssh_proxy_host": "${{ inputs.bastion_ip }}"
-        }
-        EOF
+          # Create cloud-env.json using jq to properly escape special characters
+          jq -n \
+            --arg auth_url "${{ inputs.openstack_auth_url }}" \
+            --arg tenant "${{ inputs.openstack_project_id }}" \
+            --arg domain "${{ inputs.openstack_domain_name }}" \
+            --arg username "${{ inputs.openstack_username }}" \
+            --arg password "${DECODED_PASSWORD}" \
+            --arg network "${{ inputs.openstack_network_id }}" \
+            --arg ssh_proxy "${{ inputs.bastion_ip }}" \
+            '{
+              cloud_auth_url: $auth_url,
+              cloud_tenant_name: $tenant,
+              cloud_domain_name: $domain,
+              cloud_username: $username,
+              cloud_password: $password,
+              cloud_network: $network,
+              ssh_proxy_host: $ssh_proxy
+            }' > cloud-env.json
           
-          # Replace placeholder with actual password using sed
-          # This avoids issues with special characters in the password
-          sed -i "s|PLACEHOLDER_PASSWORD|${DECODED_PASSWORD}|g" cloud-env.json
           echo "✅ Created cloud-env.json configuration"
         fi
 
