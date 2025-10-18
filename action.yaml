@@ -157,22 +157,21 @@ runs:
         if [[ -n "${{ inputs.cloud_env_json }}" ]]; then
           echo "${{ inputs.cloud_env_json }}" | base64 -d > cloud-env.json
         elif [[ -n "${{ inputs.openstack_auth_url }}" ]]; then
-          # Decode password if it's base64 encoded
-          DECODED_PASSWORD="${{ inputs.openstack_password }}"
-          if echo "$DECODED_PASSWORD" | base64 -d &>/dev/null && [[ $(echo "$DECODED_PASSWORD" | base64 -d | wc -c) -gt 0 ]]; then
-            DECODED_PASSWORD=$(echo "$DECODED_PASSWORD" | base64 -d)
-          fi
+          # Decode password - it's expected to be base64 encoded
+          DECODED_PASSWORD=$(echo "${{ inputs.openstack_password }}" | base64 -d 2>/dev/null || echo "${{ inputs.openstack_password }}")
           
           cat > cloud-env.json <<EOF
         {
           "cloud_auth_url": "${{ inputs.openstack_auth_url }}",
           "cloud_tenant": "${{ inputs.openstack_project_id }}",
           "cloud_user": "${{ inputs.openstack_username }}",
-          "cloud_pass": "$DECODED_PASSWORD",
+          "cloud_pass": "${DECODED_PASSWORD}",
           "cloud_network": "${{ inputs.openstack_network_id }}",
           "ssh_proxy_host": "${{ inputs.bastion_ip }}"
         }
         EOF
+        
+          echo "✅ Created cloud-env.json configuration"
         fi
 
         # Create clouds.yaml if not provided
