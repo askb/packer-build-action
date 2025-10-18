@@ -160,12 +160,15 @@ runs:
           # Decode password - it's expected to be base64 encoded
           # Using printf and storing in a temp file to avoid shell expansion issues
           printf '%s' "${{ inputs.openstack_password }}" > /tmp/password_encoded
-          if base64 -d /tmp/password_encoded > /tmp/password_decoded 2>/dev/null; then
+          echo "Password encoded length: $(wc -c < /tmp/password_encoded)"
+          if base64 -d /tmp/password_encoded > /tmp/password_decoded 2>/tmp/decode_error; then
             DECODED_PASSWORD=$(cat /tmp/password_decoded)
+            echo "Password successfully decoded, length: $(wc -c < /tmp/password_decoded)"
           else
+            echo "Base64 decode failed, using original: $(cat /tmp/decode_error)"
             DECODED_PASSWORD="${{ inputs.openstack_password }}"
           fi
-          rm -f /tmp/password_encoded /tmp/password_decoded
+          rm -f /tmp/password_encoded /tmp/password_decoded /tmp/decode_error
           
           cat > cloud-env.json <<EOF
         {
@@ -179,6 +182,7 @@ runs:
         EOF
         
           echo "✅ Created cloud-env.json configuration"
+          echo "Debug: cloud_pass field has $(grep -o 'cloud_pass' cloud-env.json | wc -l) occurrences"
         fi
 
         # Create clouds.yaml if not provided
