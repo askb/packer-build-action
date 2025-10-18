@@ -1,0 +1,149 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# Test Packer Build with Minimal Image
+
+name: Test Packer Build (Minimal)
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_dispatch:
+    inputs:
+      packer_template:
+        description: "Packer template to build"
+        required: false
+        type: string
+        default: "builder.pkr.hcl"
+      packer_vars:
+        description: "Packer vars file"
+        required: false
+        type: string
+        default: "ubuntu-22.04"
+      debug_mode:
+        description: "Enable debug logging"
+        required: false
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+    paths:
+      - "examples/**"
+      - "scripts/**"
+      - "action.yaml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "examples/**"
+      - "scripts/**"
+      - "action.yaml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      has-changes: ${{ steps.check.outputs.has-changes }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for changes
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
+        id: check
+        with:
+          base: ${{ github.event.before || format('refs/heads/{0}', github.ref_name) }}
+          filters: |
+            has-changes:
+              - 'examples/**'
+              - 'scripts/**'
+              - 'action.yaml'
+
+  test-packer-build:
+    needs: prepare
+    runs-on: ubuntu-latest
+    if: |
+      needs.prepare.outputs.has-changes == 'true' ||
+      github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ========================================
+      # Step 1: Setup Bastion Host
+      # ========================================
+      - name: Setup OpenStack Bastion with Tailscale
+        id: bastion
+        uses: askb/tailscale-openstack-bastion-action@main
+        with:
+          mode: setup
+          tailscale-oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+          tailscale-oauth-secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
+          openstack-auth-url: ${{ secrets.OPENSTACK_AUTH_URL }}
+          openstack-project-id: ${{ secrets.OPENSTACK_PROJECT_ID }}
+          openstack-username: ${{ secrets.OPENSTACK_USERNAME }}
+          openstack-password-b64: ${{ secrets.OPENSTACK_PASSWORD_B64 }}
+          openstack-region: ${{ secrets.OPENSTACK_REGION }}
+          bastion-name: "packer-test-${{ github.run_id }}"
+          bastion-flavor: "v3-standard-2"
+          bastion-image: "Ubuntu 22.04.5 LTS (x86_64) [2025-03-27]"
+          bastion-network: "odlci"
+
+      # ========================================
+      # Step 2: Run Packer Build Action
+      # ========================================
+      - name: Build Packer Image
+        uses: ./
+        with:
+          mode: build
+          packer_version: "1.11.2"
+          packer_template: "examples/templates/${{ inputs.packer_template || 'builder.pkr.hcl' }}"
+          packer_vars_file: "examples/vars/${{ inputs.packer_vars || 'ubuntu-22.04' }}.pkrvars.hcl"
+          bastion_ip: ${{ steps.bastion.outputs.bastion_ip }}
+          bastion_ssh_user: "root"
+          openstack_auth_url: ${{ secrets.OPENSTACK_AUTH_URL }}
+          openstack_project_id: ${{ secrets.OPENSTACK_PROJECT_ID }}
+          openstack_username: ${{ secrets.OPENSTACK_USERNAME }}
+          openstack_password: ${{ secrets.OPENSTACK_PASSWORD_B64 }}
+          openstack_network_id: ${{ secrets.OPENSTACK_NETWORK_ID }}
+          debug_mode: ${{ inputs.debug_mode || false }}
+
+      # ========================================
+      # Step 3: Teardown Bastion
+      # ========================================
+      - name: Teardown Bastion Host
+        if: always()
+        uses: askb/tailscale-openstack-bastion-action@main
+        with:
+          mode: teardown
+          bastion-name: "packer-test-${{ github.run_id }}"
+          openstack-auth-url: ${{ secrets.OPENSTACK_AUTH_URL }}
+          openstack-project-id: ${{ secrets.OPENSTACK_PROJECT_ID }}
+          openstack-username: ${{ secrets.OPENSTACK_USERNAME }}
+          openstack-password-b64: ${{ secrets.OPENSTACK_PASSWORD_B64 }}
+          openstack-region: ${{ secrets.OPENSTACK_REGION }}
+
+  summary:
+    if: always()
+    needs: [prepare, test-packer-build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build summary
+        run: |
+          {
+            echo "## Packer Build Test Summary"
+            echo ""
+            echo "- **Workflow:** ${{ github.workflow }}"
+            echo "- **Run ID:** ${{ github.run_id }}"
+            echo "- **Trigger:** ${{ github.event_name }}"
+            echo "- **Branch:** ${{ github.ref_name }}"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "${{ needs.test-packer-build.result }}" == "success" ]; then
+            echo "✅ **Build Status:** Success" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "❌ **Build Status:** Failed" >> "$GITHUB_STEP_SUMMARY"
+          fi

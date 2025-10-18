@@ -41,14 +41,18 @@ jobs:
         uses: askb/tailscale-openstack-bastion-action@main
         with:
           mode: setup
-          tailscale_oauth_client_id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
-          tailscale_oauth_secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
-          openstack_auth_url: ${{ secrets.OPENSTACK_AUTH_URL }}
-          openstack_project_id: ${{ secrets.OPENSTACK_PROJECT_ID }}
-          openstack_username: ${{ secrets.OPENSTACK_USERNAME }}
-          openstack_password: ${{ secrets.OPENSTACK_PASSWORD }}
-          openstack_network_id: ${{ secrets.OPENSTACK_NETWORK_ID }}
-          bastion_timeout: "300"
+          tailscale-oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+          tailscale-oauth-secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
+          openstack-auth-url: ${{ secrets.OPENSTACK_AUTH_URL }}
+          openstack-project-id: ${{ secrets.OPENSTACK_PROJECT_ID }}
+          openstack-username: ${{ secrets.OPENSTACK_USERNAME }}
+          openstack-password-b64: ${{ secrets.OPENSTACK_PASSWORD_B64 }}
+          openstack-region: ${{ secrets.OPENSTACK_REGION }}
+          bastion-name: "packer-build-test-${{ github.run_id }}"
+          bastion-flavor: "v3-standard-2"
+          bastion-image: "Ubuntu 22.04.5 LTS (x86_64) [2025-03-27]"
+          bastion-network: "odlci"
+          bastion-timeout: "300"
 
       - name: Build with Packer
         id: build
@@ -56,7 +60,7 @@ jobs:
         with:
           mode: build
           bastion_ip: ${{ steps.bastion.outputs.bastion_ip }}
-          bastion_ssh_user: ${{ steps.bastion.outputs.bastion_ssh_user }}
+          bastion_ssh_user: "root"
           packer_template: ${{ github.event.inputs.template }}
           packer_vars_file: ${{ github.event.inputs.vars_file }}
           packer_working_dir: "."
@@ -64,7 +68,7 @@ jobs:
           openstack_auth_url: ${{ secrets.OPENSTACK_AUTH_URL }}
           openstack_project_id: ${{ secrets.OPENSTACK_PROJECT_ID }}
           openstack_username: ${{ secrets.OPENSTACK_USERNAME }}
-          openstack_password: ${{ secrets.OPENSTACK_PASSWORD }}
+          openstack_password: ${{ secrets.OPENSTACK_PASSWORD_B64 }}
           openstack_network_id: ${{ secrets.OPENSTACK_NETWORK_ID }}
           packer_version: "1.11.2"
           python_version: "3.11"
@@ -75,18 +79,19 @@ jobs:
         uses: askb/tailscale-openstack-bastion-action@main
         with:
           mode: teardown
-          bastion_id: ${{ steps.bastion.outputs.bastion_id }}
-          openstack_auth_url: ${{ secrets.OPENSTACK_AUTH_URL }}
-          openstack_project_id: ${{ secrets.OPENSTACK_PROJECT_ID }}
-          openstack_username: ${{ secrets.OPENSTACK_USERNAME }}
-          openstack_password: ${{ secrets.OPENSTACK_PASSWORD }}
+          bastion-name: "packer-build-test-${{ github.run_id }}"
+          openstack-auth-url: ${{ secrets.OPENSTACK_AUTH_URL }}
+          openstack-project-id: ${{ secrets.OPENSTACK_PROJECT_ID }}
+          openstack-username: ${{ secrets.OPENSTACK_USERNAME }}
+          openstack-password-b64: ${{ secrets.OPENSTACK_PASSWORD_B64 }}
+          openstack-region: ${{ secrets.OPENSTACK_REGION }}
 
       - name: Summary
         if: always()
         run: |
-          echo "## Test Results" >> $GITHUB_STEP_SUMMARY
-          echo "**Bastion IP:** ${{ steps.bastion.outputs.bastion_ip }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Build Status:** ${{ steps.build.outputs.build_status }}" >> $GITHUB_STEP_SUMMARY
+          echo "## Test Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Bastion IP:** ${{ steps.bastion.outputs.bastion_ip }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Build Status:** ${{ steps.build.outputs.build_status }}" >> "$GITHUB_STEP_SUMMARY"
           if [[ -n "${{ steps.build.outputs.image_name }}" ]]; then
-            echo "**Image Name:** ${{ steps.build.outputs.image_name }}" >> $GITHUB_STEP_SUMMARY
+            echo "**Image Name:** ${{ steps.build.outputs.image_name }}" >> "$GITHUB_STEP_SUMMARY"
           fi
