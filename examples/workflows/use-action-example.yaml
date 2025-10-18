@@ -1,0 +1,79 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# Example workflow showing how to use the packer-openstack-bastion-action
+# from a CI/builder repository
+
+name: Build Images with Packer Action
+
+on:
+  workflow_dispatch:
+    inputs:
+      packer_vars:
+        description: "Packer vars file to use (e.g., ubuntu-22.04)"
+        required: true
+        default: "ubuntu-22.04"
+        type: choice
+        options:
+          - ubuntu-22.04
+          - ubuntu-24.04
+          - rocky-9
+      debug_mode:
+        description: "Enable debug logging"
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+    name: Build ${{ inputs.packer_vars }} Image
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          submodules: true
+
+      - name: Build Image with Packer
+        id: build
+        uses: lfit/packer-openstack-bastion-action@main # Use @v1 for stable version
+        with:
+          # Packer configuration
+          packer_template: "templates/builder.pkr.hcl"
+          packer_vars_file: "vars/${{ inputs.packer_vars }}.pkrvars.hcl"
+          packer_working_dir: "packer"
+          packer_version: "1.11.2"
+
+          # Cloud configuration
+          cloud_env_json: ${{ secrets.CLOUD_ENV_JSON_B64 }}
+
+          # OpenStack credentials
+          openstack_auth_url: ${{ secrets.OPENSTACK_AUTH_URL }}
+          openstack_project_id: ${{ secrets.OPENSTACK_PROJECT_ID }}
+          openstack_username: ${{ secrets.OPENSTACK_USERNAME }}
+          openstack_password: ${{ secrets.OPENSTACK_PASSWORD_B64 }}
+          openstack_region: ${{ secrets.OPENSTACK_REGION || 'ca-ymq-1' }}
+          openstack_network_id: ${{ secrets.OPENSTACK_NETWORK_ID }}
+
+          # Bastion configuration
+          bastion_flavor: "v3-standard-2"
+          bastion_image: "Ubuntu 22.04.5 LTS (x86_64) [2025-03-27]"
+          bastion_network: "odlci"
+          bastion_wait_timeout: "300"
+
+          # Tailscale
+          tailscale_auth_key: ${{ secrets.TAILSCALE_AUTH_KEY }}
+
+          # Build options
+          debug_mode: ${{ inputs.debug_mode }}
+          upload_logs: "true"
+          log_retention_days: "30"
+
+      - name: Report build result
+        if: always()
+        run: |
+          echo "### Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image**: ${{ inputs.packer_vars }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Bastion IP**: ${{ steps.build.outputs.bastion_ip }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ${{ steps.build.outputs.build_status }}" >> $GITHUB_STEP_SUMMARY
