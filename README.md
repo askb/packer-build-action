@@ -1,18 +1,29 @@
 # Packer Build Action
 
-GitHub Action for validating and building OpenStack images using HashiCorp Packer through a bastion host.
+GitHub Action for validating and building OpenStack images using HashiCorp Packer through a Tailscale bastion host.
 
 ## Features
 
 - 🔍 **Validate Mode**: Syntax-only validation (no credentials required)
-- 🔨 **Build Mode**: Full image builds via bastion host
+- 🔨 **Build Mode**: Full image builds via Tailscale bastion host
 - 📦 **Ansible Integration**: Automatic Ansible Galaxy role installation
 - 🔄 **Auto-discovery**: Finds Packer templates and var files automatically
 - 🌐 **Multi-cloud Ready**: Configurable for any OpenStack environment
+- 🔐 **OAuth Ephemeral Keys**: Uses Tailscale OAuth for secure, temporary connections
+
+## Architecture
+
+This action works in conjunction with [tailscale-openstack-bastion-action](https://github.com/askb/tailscale-openstack-bastion-action) to:
+
+1. **Bastion Setup**: Creates an ephemeral OpenStack instance with Tailscale
+2. **Packer Build**: Executes Packer build through the bastion's secure tunnel
+3. **Cleanup**: Automatically tears down the bastion after build completion
 
 ## Usage
 
 ### Validate Packer Templates
+
+Validation mode performs syntax checking without requiring cloud credentials or a bastion:
 
 ```yaml
 - name: Validate Packer templates
@@ -24,26 +35,35 @@ GitHub Action for validating and building OpenStack images using HashiCorp Packe
 
 ### Build Images with Bastion
 
+Complete workflow showing bastion setup, build, and teardown:
+
 ```yaml
 jobs:
   build-image:
     runs-on: ubuntu-latest
     steps:
-      # Setup bastion first
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 1: Setup bastion with Tailscale
       - name: Setup bastion
         id: bastion
-        uses: lfreleng-actions/openstack-bastion-action@v1
+        uses: lfreleng-actions/tailscale-openstack-bastion-action@v1
         with:
           mode: setup
-          tailscale_oauth_client_id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
-          tailscale_oauth_secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
-          openstack_auth_url: ${{ secrets.OPENSTACK_AUTH_URL }}
-          openstack_project_id: ${{ secrets.OPENSTACK_PROJECT_ID }}
-          openstack_username: ${{ secrets.OPENSTACK_USERNAME }}
-          openstack_password: ${{ secrets.OPENSTACK_PASSWORD }}
-          openstack_network_id: ${{ secrets.OPENSTACK_NETWORK_ID }}
+          tailscale-oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+          tailscale-oauth-secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
+          openstack-auth-url: ${{ secrets.OPENSTACK_AUTH_URL }}
+          openstack-project-id: ${{ secrets.OPENSTACK_PROJECT_ID }}
+          openstack-username: ${{ secrets.OPENSTACK_USERNAME }}
+          openstack-password-b64: ${{ secrets.OPENSTACK_PASSWORD_B64 }}
+          openstack-region: ${{ secrets.OPENSTACK_REGION }}
+          bastion-name: "packer-build-${{ github.run_id }}"
+          bastion-flavor: "v3-standard-2"
+          bastion-image: "Ubuntu 22.04.5 LTS (x86_64) [2025-03-27]"
+          bastion-network: "your-network-name"
 
-      # Build with Packer
+      # Step 2: Build with Packer
       - name: Build image
         uses: lfreleng-actions/packer-build-action@v1
         with:
