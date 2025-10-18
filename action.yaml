@@ -80,6 +80,10 @@ inputs:
     description: "OpenStack network UUID for builds"
     required: false
     default: ""
+  openstack_domain_name:
+    description: "OpenStack domain name (required for v3 API)"
+    required: false
+    default: "Default"
 
   # Build Environment Configuration
   ansible_version:
@@ -172,6 +176,7 @@ runs:
         {
           "cloud_auth_url": "${{ inputs.openstack_auth_url }}",
           "cloud_tenant_name": "${{ inputs.openstack_project_id }}",
+          "cloud_domain_name": "${{ inputs.openstack_domain_name }}",
           "cloud_username": "${{ inputs.openstack_username }}",
           "cloud_password": "PLACEHOLDER_PASSWORD",
           "cloud_network": "${{ inputs.openstack_network_id }}",

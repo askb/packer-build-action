@@ -114,6 +114,7 @@ jobs:
           openstack_username: ${{ secrets.OPENSTACK_USERNAME }}
           openstack_password: ${{ secrets.OPENSTACK_PASSWORD_B64 }}
           openstack_network_id: ${{ secrets.OPENSTACK_NETWORK_ID }}
+          openstack_domain_name: ${{ secrets.OPENSTACK_DOMAIN_NAME }}
 
       # ========================================
       # Step 3: Teardown Bastion
