@@ -48,11 +48,8 @@ echo ""
 
 # Validate each template
 for template in $TEMPLATES; do
-    template_dir=$(dirname "$template")
-    template_name=$(basename "$template")
-    
     echo "Validating: $template"
-    
+
     # Initialize Packer
     echo "  Initializing..."
     if packer init "$template" > /dev/null 2>&1; then
@@ -62,7 +59,7 @@ for template in $TEMPLATES; do
         ((FAILED++))
         continue
     fi
-    
+
     # Validate syntax only (no vars needed)
     echo "  Checking syntax..."
     if packer validate -syntax-only "$template" > /dev/null 2>&1; then
@@ -73,7 +70,7 @@ for template in $TEMPLATES; do
         packer validate -syntax-only "$template" || true
         ((FAILED++))
     fi
-    
+
     echo ""
 done
 

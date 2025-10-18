@@ -6,10 +6,10 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "packer-vexxhost-bastion-action"
+name = "packer-build-action"
 version = "1.0.0"
-description = "GitHub Action for building OpenStack images with Packer through Tailscale bastion"
-readme = "ACTION_README.md"
+description = "GitHub Action for building OpenStack images with Packer via bastion hosts"
+readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "Apache-2.0"}
 authors = [

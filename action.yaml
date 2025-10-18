@@ -181,33 +181,33 @@ runs:
       working-directory: ${{ inputs.path_prefix }}/${{ inputs.packer_working_dir }}
       run: |
         set -e
-        
+
         MODE="${{ inputs.mode }}"
         TEMPLATE="${{ inputs.packer_template }}"
         VARS_FILE="${{ inputs.packer_vars_file }}"
-        
+
         if [[ "$MODE" == "validate" ]]; then
           echo "🔍 Running Packer validation..."
           ${{ github.action_path }}/scripts/validate-packer.sh
           echo "validation_result=success" >> $GITHUB_OUTPUT
         elif [[ "$MODE" == "build" ]]; then
           echo "🔨 Running Packer build..."
-          
+
           # Build via bastion
           if [[ -z "$TEMPLATE" || -z "$VARS_FILE" ]]; then
             echo "❌ Error: packer_template and packer_vars_file required for build mode"
             exit 1
           fi
-          
+
           PACKER_CMD="packer build"
           PACKER_CMD="$PACKER_CMD -var-file=cloud-env.json"
           PACKER_CMD="$PACKER_CMD -var-file=$VARS_FILE"
           PACKER_CMD="$PACKER_CMD -var bastion_host=${{ inputs.bastion_ip }}"
           PACKER_CMD="$PACKER_CMD $TEMPLATE"
-          
+
           echo "Executing: $PACKER_CMD"
           eval $PACKER_CMD
-          
+
           echo "build_status=success" >> $GITHUB_OUTPUT
           echo "image_name=Built successfully" >> $GITHUB_OUTPUT
         else

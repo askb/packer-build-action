@@ -14,7 +14,7 @@ set -euo pipefail
 if [[ -d "packer" ]]; then
     PACKER_DIR="packer"
 elif [[ -d "common-packer" ]]; then
-    PACKER_DIR="common-packer"  
+    PACKER_DIR="common-packer"
 elif [[ -d "templates" ]]; then
     PACKER_DIR="templates"
 else

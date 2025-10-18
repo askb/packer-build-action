@@ -75,14 +75,14 @@ if eval "$PACKER_CMD"; then
     echo "======================================="
     echo "✅ Build completed successfully"
     echo "======================================="
-    
+
     # Try to extract image name from output
     # This is cloud-provider specific logic
     if [[ -f "manifest.json" ]]; then
         IMAGE_NAME=$(jq -r '.builds[0].artifact_id' manifest.json 2>/dev/null || echo "unknown")
         echo "IMAGE_NAME=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
     fi
-    
+
     exit 0
 else
     echo ""

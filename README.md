@@ -42,7 +42,7 @@ jobs:
           openstack_username: ${{ secrets.OPENSTACK_USERNAME }}
           openstack_password: ${{ secrets.OPENSTACK_PASSWORD }}
           openstack_network_id: ${{ secrets.OPENSTACK_NETWORK_ID }}
-      
+
       # Build with Packer
       - name: Build image
         uses: lfreleng-actions/packer-build-action@v1
@@ -57,7 +57,7 @@ jobs:
           openstack_username: ${{ secrets.OPENSTACK_USERNAME }}
           openstack_password: ${{ secrets.OPENSTACK_PASSWORD }}
           openstack_network_id: ${{ secrets.OPENSTACK_NETWORK_ID }}
-      
+
       # Cleanup bastion
       - name: Teardown bastion
         if: always()
@@ -75,50 +75,52 @@ jobs:
 
 ### Required Inputs
 
-| Input | Description | Default |
-|-------|-------------|---------|
+| Input  | Description                           | Default    |
+| ------ | ------------------------------------- | ---------- |
 | `mode` | Operation mode: `validate` or `build` | `validate` |
 
 ### Build Mode Required Inputs
 
-| Input | Description |
-|-------|-------------|
-| `bastion_ip` | Bastion Tailscale IP from bastion action |
-| `openstack_auth_url` | OpenStack authentication URL |
-| `openstack_project_id` | OpenStack project/tenant ID |
-| `openstack_username` | OpenStack username |
-| `openstack_password` | OpenStack password |
-| `openstack_network_id` | OpenStack network UUID |
+| Input                  | Description                              |
+| ---------------------- | ---------------------------------------- |
+| `bastion_ip`           | Bastion Tailscale IP from bastion action |
+| `openstack_auth_url`   | OpenStack authentication URL             |
+| `openstack_project_id` | OpenStack project/tenant ID              |
+| `openstack_username`   | OpenStack username                       |
+| `openstack_password`   | OpenStack password                       |
+| `openstack_network_id` | OpenStack network UUID                   |
 
 ### Optional Inputs
 
-| Input | Description | Default |
-|-------|-------------|---------|
-| `packer_template` | Path to Packer template | Auto-discover |
-| `packer_vars_file` | Path to vars file | Auto-discover |
-| `packer_working_dir` | Working directory | `.` |
-| `path_prefix` | Path prefix for execution | `target-repo` |
-| `packer_version` | Packer version | `1.11.2` |
-| `ansible_version` | Ansible version | `2.17.0` |
-| `python_version` | Python version | `3.11` |
-| `bastion_ssh_user` | SSH user for bastion | `ubuntu` |
+| Input                | Description               | Default       |
+| -------------------- | ------------------------- | ------------- |
+| `packer_template`    | Path to Packer template   | Auto-discover |
+| `packer_vars_file`   | Path to vars file         | Auto-discover |
+| `packer_working_dir` | Working directory         | `.`           |
+| `path_prefix`        | Path prefix for execution | `target-repo` |
+| `packer_version`     | Packer version            | `1.11.2`      |
+| `ansible_version`    | Ansible version           | `2.17.0`      |
+| `python_version`     | Python version            | `3.11`        |
+| `bastion_ssh_user`   | SSH user for bastion      | `ubuntu`      |
 
 ## Outputs
 
-| Output | Description |
-|--------|-------------|
-| `validation_result` | Validation result summary |
-| `image_name` | Built image name (build mode) |
-| `image_id` | Built image ID (build mode) |
-| `build_status` | Build completion status |
+| Output              | Description                   |
+| ------------------- | ----------------------------- |
+| `validation_result` | Validation result summary     |
+| `image_name`        | Built image name (build mode) |
+| `image_id`          | Built image ID (build mode)   |
+| `build_status`      | Build completion status       |
 
 ## Requirements
 
 ### For Validate Mode
+
 - Packer templates with valid HCL syntax
 - No credentials required
 
 ### For Build Mode
+
 - Active bastion host (from `openstack-bastion-action`)
 - OpenStack credentials
 - Packer templates configured for OpenStack
@@ -157,5 +159,6 @@ Apache License 2.0 - see [LICENSE](LICENSE) for details.
 ## Support
 
 For issues and questions:
+
 - GitHub Issues: [Report a bug](https://github.com/lfreleng-actions/packer-build-action/issues)
 - Documentation: [docs/](docs/)
