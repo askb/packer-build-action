@@ -89,7 +89,7 @@ inputs:
   ansible_version:
     description: "Ansible version to install"
     required: false
-    default: "10.5.0"
+    default: "2.15.9"
   python_version:
     description: "Python version for build environment"
     required: false
