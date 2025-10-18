@@ -104,6 +104,7 @@ jobs:
           packer_version: "1.11.2"
           packer_template: "examples/templates/${{ inputs.packer_template || 'builder.pkr.hcl' }}"
           packer_vars_file: "examples/vars/${{ inputs.packer_vars || 'ubuntu-22.04' }}.pkrvars.hcl"
+          path_prefix: "."
           bastion_ip: ${{ steps.bastion.outputs.bastion_ip }}
           bastion_ssh_user: "root"
           openstack_auth_url: ${{ secrets.OPENSTACK_AUTH_URL }}
