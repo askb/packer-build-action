@@ -81,18 +81,18 @@ jobs:
         id: bastion
         uses: askb/tailscale-openstack-bastion-action@main
         with:
-          mode: setup
-          tailscale-oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
-          tailscale-oauth-secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
-          openstack-auth-url: ${{ secrets.OPENSTACK_AUTH_URL }}
-          openstack-project-id: ${{ secrets.OPENSTACK_PROJECT_ID }}
-          openstack-username: ${{ secrets.OPENSTACK_USERNAME }}
-          openstack-password-b64: ${{ secrets.OPENSTACK_PASSWORD_B64 }}
-          openstack-region: ${{ secrets.OPENSTACK_REGION }}
-          bastion-name: "packer-test-${{ github.run_id }}"
-          bastion-flavor: "v3-standard-2"
-          bastion-image: "Ubuntu 22.04.5 LTS (x86_64) [2025-03-27]"
-          bastion-network: "odlci"
+          operation: setup
+          tailscale_oauth_client_id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+          tailscale_oauth_secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
+          openstack_auth_url: ${{ secrets.OPENSTACK_AUTH_URL }}
+          openstack_project_id: ${{ secrets.OPENSTACK_PROJECT_ID }}
+          openstack_username: ${{ secrets.OPENSTACK_USERNAME }}
+          openstack_password: ${{ secrets.OPENSTACK_PASSWORD_B64 }}
+          openstack_region: ${{ secrets.OPENSTACK_REGION }}
+          bastion_name: "packer-test-${{ github.run_id }}"
+          bastion_flavor: "v3-standard-2"
+          bastion_image: "Ubuntu 22.04.5 LTS (x86_64) [2025-03-27]"
+          bastion_network: "odlci"
 
       # ========================================
       # Step 2: Run Packer Build Action
@@ -119,13 +119,13 @@ jobs:
         if: always()
         uses: askb/tailscale-openstack-bastion-action@main
         with:
-          mode: teardown
-          bastion-name: "packer-test-${{ github.run_id }}"
-          openstack-auth-url: ${{ secrets.OPENSTACK_AUTH_URL }}
-          openstack-project-id: ${{ secrets.OPENSTACK_PROJECT_ID }}
-          openstack-username: ${{ secrets.OPENSTACK_USERNAME }}
-          openstack-password-b64: ${{ secrets.OPENSTACK_PASSWORD_B64 }}
-          openstack-region: ${{ secrets.OPENSTACK_REGION }}
+          operation: teardown
+          bastion_name: "packer-test-${{ github.run_id }}"
+          openstack_auth_url: ${{ secrets.OPENSTACK_AUTH_URL }}
+          openstack_project_id: ${{ secrets.OPENSTACK_PROJECT_ID }}
+          openstack_username: ${{ secrets.OPENSTACK_USERNAME }}
+          openstack_password: ${{ secrets.OPENSTACK_PASSWORD_B64 }}
+          openstack_region: ${{ secrets.OPENSTACK_REGION }}
 
   summary:
     if: always()
