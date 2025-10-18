@@ -171,8 +171,8 @@ runs:
           cat > cloud-env.json <<'EOF'
         {
           "cloud_auth_url": "${{ inputs.openstack_auth_url }}",
-          "cloud_tenant": "${{ inputs.openstack_project_id }}",
-          "cloud_user": "${{ inputs.openstack_username }}",
+          "cloud_tenant_name": "${{ inputs.openstack_project_id }}",
+          "cloud_username": "${{ inputs.openstack_username }}",
           "cloud_password": "PLACEHOLDER_PASSWORD",
           "cloud_network": "${{ inputs.openstack_network_id }}",
           "ssh_proxy_host": "${{ inputs.bastion_ip }}"
