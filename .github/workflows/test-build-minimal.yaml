@@ -24,19 +24,21 @@ on:
         type: boolean
         default: false
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
       - "examples/**"
       - "scripts/**"
       - "action.yaml"
-      - ".github/workflows/**"
+      - ".github/workflows/test-build-minimal.yaml"
   pull_request:
-    branches: [main]
+    branches:
+      - main
     paths:
       - "examples/**"
       - "scripts/**"
       - "action.yaml"
-      - ".github/workflows/**"
+      - ".github/workflows/test-build-minimal.yaml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

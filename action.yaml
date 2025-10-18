@@ -153,31 +153,35 @@ runs:
       shell: bash
       working-directory: ${{ inputs.path_prefix }}/${{ inputs.packer_working_dir }}
       run: |
+        set -euo pipefail
         # Create cloud-env.json if not provided
         if [[ -n "${{ inputs.cloud_env_json }}" ]]; then
           echo "${{ inputs.cloud_env_json }}" | base64 -d > cloud-env.json
         elif [[ -n "${{ inputs.openstack_auth_url }}" ]]; then
           # Decode password - it's expected to be base64 encoded
-          # Using printf and storing in a temp file to avoid shell expansion issues
-          printf '%s' "${{ inputs.openstack_password }}" > /tmp/password_encoded
-          if base64 -d /tmp/password_encoded > /tmp/password_decoded 2>/dev/null; then
-            DECODED_PASSWORD=$(cat /tmp/password_decoded)
+          # Try to decode, if it fails, use as-is
+          if DECODED_PASSWORD=$(echo "${{ inputs.openstack_password }}" | base64 -d 2>/dev/null); then
+            echo "✅ Password decoded from base64"
           else
             DECODED_PASSWORD="${{ inputs.openstack_password }}"
+            echo "ℹ️  Using password as-is (not base64 encoded)"
           fi
-          rm -f /tmp/password_encoded /tmp/password_decoded
           
-          cat > cloud-env.json <<EOF
+          # Create cloud-env.json with properly decoded password
+          cat > cloud-env.json <<'EOF'
         {
           "cloud_auth_url": "${{ inputs.openstack_auth_url }}",
           "cloud_tenant": "${{ inputs.openstack_project_id }}",
           "cloud_user": "${{ inputs.openstack_username }}",
-          "cloud_password": "${DECODED_PASSWORD}",
+          "cloud_password": "PLACEHOLDER_PASSWORD",
           "cloud_network": "${{ inputs.openstack_network_id }}",
           "ssh_proxy_host": "${{ inputs.bastion_ip }}"
         }
         EOF
-        
+          
+          # Replace placeholder with actual password using sed
+          # This avoids issues with special characters in the password
+          sed -i "s|PLACEHOLDER_PASSWORD|${DECODED_PASSWORD}|g" cloud-env.json
           echo "✅ Created cloud-env.json configuration"
         fi
 
