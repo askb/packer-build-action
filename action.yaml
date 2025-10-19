@@ -84,6 +84,10 @@ inputs:
     description: "OpenStack domain name (required for v3 API)"
     required: false
     default: "Default"
+  os_cloud:
+    description: "OpenStack cloud name from clouds.yaml"
+    required: false
+    default: "openstack"
 
   # Build Environment Configuration
   ansible_version:
@@ -230,6 +234,8 @@ runs:
       id: execute
       shell: bash
       working-directory: ${{ inputs.path_prefix }}/${{ inputs.packer_working_dir }}
+      env:
+        OS_CLOUD: ${{ inputs.os_cloud }}
       run: |
         set -e
 
@@ -254,6 +260,7 @@ runs:
           PACKER_CMD="$PACKER_CMD -var-file=cloud-env.json"
           PACKER_CMD="$PACKER_CMD -var-file=$VARS_FILE"
           PACKER_CMD="$PACKER_CMD -var bastion_host=${{ inputs.bastion_ip }}"
+          PACKER_CMD="$PACKER_CMD -var bastion_user=${{ inputs.bastion_ssh_user }}"
           PACKER_CMD="$PACKER_CMD $TEMPLATE"
 
           echo "Executing: $PACKER_CMD"

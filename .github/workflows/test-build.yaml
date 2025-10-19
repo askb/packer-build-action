@@ -70,6 +70,7 @@ jobs:
           packer_vars_file: ${{ github.event.inputs.vars_file }}
           packer_working_dir: "."
           path_prefix: "target-repo"
+          os_cloud: "openstack"
           openstack_auth_url: ${{ secrets.OPENSTACK_AUTH_URL }}
           openstack_project_id: ${{ secrets.OPENSTACK_PROJECT_ID }}
           openstack_username: ${{ secrets.OPENSTACK_USERNAME }}
