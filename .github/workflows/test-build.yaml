@@ -109,9 +109,11 @@ jobs:
       - name: Summary
         if: always()
         run: |
-          echo "## Test Results" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Bastion IP:** ${{ steps.bastion.outputs.bastion_ip }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Build Status:** ${{ steps.build.outputs.build_status }}" >> "$GITHUB_STEP_SUMMARY"
-          if [[ -n "${{ steps.build.outputs.image_name }}" ]]; then
-            echo "**Image Name:** ${{ steps.build.outputs.image_name }}" >> "$GITHUB_STEP_SUMMARY"
-          fi
+          {
+            echo "## Test Results"
+            echo "**Bastion IP:** ${{ steps.bastion.outputs.bastion_ip }}"
+            echo "**Build Status:** ${{ steps.build.outputs.build_status }}"
+            if [[ -n "${{ steps.build.outputs.image_name }}" ]]; then
+              echo "**Image Name:** ${{ steps.build.outputs.image_name }}"
+            fi
+          } >> "${GITHUB_STEP_SUMMARY}"
