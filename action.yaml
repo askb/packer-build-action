@@ -205,11 +205,34 @@ runs:
           echo "✅ Created cloud-env.json configuration"
         fi
 
-        # Create clouds.yaml if provided
+        # Create clouds.yaml if provided or generate from credentials
         if [[ -n "${{ inputs.clouds_yaml }}" ]]; then
           mkdir -p "$HOME/.config/openstack"
           echo "${{ inputs.clouds_yaml }}" | base64 -d > "$HOME/.config/openstack/clouds.yaml"
           echo "✅ OpenStack clouds.yaml created from base64 input"
+        elif [[ -n "${{ inputs.os_cloud }}" ]] && [[ -n "${{ inputs.openstack_auth_url }}" ]]; then
+          # Auto-generate clouds.yaml from OpenStack credentials
+          mkdir -p "$HOME/.config/openstack"
+          
+          # Decode password if it's base64 encoded
+          password="${{ inputs.openstack_password }}"
+          if echo "$password" | base64 -d &> /dev/null; then
+            password=$(echo "$password" | base64 -d)
+          fi
+          
+          cat > "$HOME/.config/openstack/clouds.yaml" << EOF
+        clouds:
+          ${{ inputs.os_cloud }}:
+            auth:
+              auth_url: ${{ inputs.openstack_auth_url }}
+              username: ${{ inputs.openstack_username }}
+              password: $password
+              project_id: ${{ inputs.openstack_project_id }}
+              user_domain_name: ${{ inputs.openstack_domain_name }}
+              project_domain_name: ${{ inputs.openstack_domain_name }}
+            region_name: ${{ inputs.openstack_region }}
+        EOF
+          echo "✅ Auto-generated clouds.yaml for cloud: ${{ inputs.os_cloud }}"
         fi
 
     - name: Initialize Packer plugins
