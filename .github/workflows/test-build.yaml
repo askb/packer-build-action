@@ -15,20 +15,6 @@ on:
         description: "Packer vars file"
         required: true
         default: "vars/ubuntu-22.04.pkrvars.hcl"
-  push:
-    branches:
-      - main
-    paths:
-      - "scripts/**"
-      - "action.yaml"
-      - ".github/workflows/test-build.yaml"
-  pull_request:
-    branches:
-      - main
-    paths:
-      - "scripts/**"
-      - "action.yaml"
-      - ".github/workflows/test-build.yaml"
 
 permissions:
   contents: read
