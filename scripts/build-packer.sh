@@ -47,30 +47,31 @@ echo "======================================="
 echo "🔧 Initializing Packer..."
 packer init "$TEMPLATE"
 
-# Build command
-PACKER_CMD="packer build"
+# Build command array
+PACKER_ARGS=(build)
 
 # Add cloud environment if exists
 if [[ -f "cloud-env.json" ]]; then
-    PACKER_CMD="$PACKER_CMD -var-file=cloud-env.json"
+    PACKER_ARGS+=(-var-file=cloud-env.json)
 fi
 
 # Add variables file
-PACKER_CMD="$PACKER_CMD -var-file=$VARS_FILE"
+PACKER_ARGS+=(-var-file="$VARS_FILE")
 
 # Add bastion host if provided
 if [[ -n "$BASTION_IP" ]]; then
-    PACKER_CMD="$PACKER_CMD -var=bastion_host=$BASTION_IP"
+    PACKER_ARGS+=(-var=bastion_host="$BASTION_IP")
+    PACKER_ARGS+=(-var=bastion_user=root)
 fi
 
 # Add template
-PACKER_CMD="$PACKER_CMD $TEMPLATE"
+PACKER_ARGS+=("$TEMPLATE")
 
-echo "🔨 Executing: $PACKER_CMD"
+echo "🔨 Executing: packer ${PACKER_ARGS[*]}"
 echo ""
 
-# Execute build
-if eval "$PACKER_CMD"; then
+# Execute build with real-time output streaming
+if packer "${PACKER_ARGS[@]}"; then
     echo ""
     echo "======================================="
     echo "✅ Build completed successfully"
