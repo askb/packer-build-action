@@ -190,6 +190,7 @@ runs:
             --arg domain "${{ inputs.openstack_domain_name }}" \
             --arg username "${{ inputs.openstack_username }}" \
             --arg password "${DECODED_PASSWORD}" \
+            --arg region "${{ inputs.openstack_region }}" \
             --arg network "${{ inputs.openstack_network_id }}" \
             --arg ssh_proxy "${{ inputs.bastion_ip }}" \
             '{
@@ -198,6 +199,7 @@ runs:
               cloud_domain_name: $domain,
               cloud_username: $username,
               cloud_password: $password,
+              cloud_region: $region,
               cloud_network: $network,
               ssh_proxy_host: $ssh_proxy
             }' > cloud-env.json
