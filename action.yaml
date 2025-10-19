@@ -22,6 +22,10 @@ inputs:
     description: "SSH user for bastion connection"
     required: false
     default: "ubuntu"
+  bastion_ssh_private_key:
+    description: "SSH private key for bastion connection (required for build mode)"
+    required: false
+    default: ""
 
   # Packer Configuration
   packer_template:
@@ -259,10 +263,22 @@ runs:
       shell: bash
       if: inputs.mode == 'build'
       run: |
+        # Start SSH agent
         eval "$(ssh-agent -s)"
         echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> "$GITHUB_ENV"
         echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> "$GITHUB_ENV"
         echo "✅ SSH agent started"
+
+        # Add bastion SSH private key if provided
+        if [[ -n "${{ inputs.bastion_ssh_private_key }}" ]]; then
+          echo "${{ inputs.bastion_ssh_private_key }}" > /tmp/bastion_key
+          chmod 600 /tmp/bastion_key
+          ssh-add /tmp/bastion_key
+          rm /tmp/bastion_key
+          echo "✅ Bastion SSH key added to agent"
+        else
+          echo "⚠️  No bastion SSH key provided - build may fail if bastion connection required"
+        fi
 
     - name: Execute Packer operation
       id: execute

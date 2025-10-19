@@ -66,6 +66,7 @@ jobs:
           mode: build
           bastion_ip: ${{ steps.bastion.outputs.bastion_ip }}
           bastion_ssh_user: "root"
+          bastion_ssh_private_key: ${{ steps.bastion.outputs.ssh_private_key }}
           packer_template: ${{ github.event.inputs.template }}
           packer_vars_file: ${{ github.event.inputs.vars_file }}
           packer_working_dir: "."

@@ -109,6 +109,7 @@ jobs:
           path_prefix: "."
           bastion_ip: ${{ steps.bastion.outputs.bastion_ip }}
           bastion_ssh_user: "root"
+          bastion_ssh_private_key: ${{ steps.bastion.outputs.ssh_private_key }}
           os_cloud: "openstack"
           openstack_auth_url: ${{ secrets.OPENSTACK_AUTH_URL }}
           openstack_project_id: ${{ secrets.OPENSTACK_PROJECT_ID }}
