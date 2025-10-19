@@ -213,13 +213,13 @@ runs:
         elif [[ -n "${{ inputs.os_cloud }}" ]] && [[ -n "${{ inputs.openstack_auth_url }}" ]]; then
           # Auto-generate clouds.yaml from OpenStack credentials
           mkdir -p "$HOME/.config/openstack"
-          
+
           # Decode password if it's base64 encoded
           password="${{ inputs.openstack_password }}"
           if echo "$password" | base64 -d &> /dev/null; then
             password=$(echo "$password" | base64 -d)
           fi
-          
+
           cat > "$HOME/.config/openstack/clouds.yaml" << EOF
         clouds:
           ${{ inputs.os_cloud }}:
