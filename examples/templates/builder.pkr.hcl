@@ -165,11 +165,11 @@ source "openstack" "builder" {
   ssh_timeout  = var.ssh_timeout
 
   # Bastion configuration (conditional)
-  # Note: Using Tailscale SSH - agent auth enabled for Tailscale to handle
+  # Note: Using Tailscale SSH - no agent auth needed, Tailscale handles authentication
   ssh_bastion_host              = var.bastion_host != "" ? var.bastion_host : null
   ssh_bastion_username          = var.bastion_host != "" ? var.bastion_user : null
   ssh_bastion_port              = var.bastion_host != "" ? var.bastion_port : null
-  ssh_bastion_agent_auth        = var.bastion_host != "" ? true : null
+  ssh_bastion_agent_auth        = false
   ssh_bastion_private_key_file  = null
 
   # Connection settings
