@@ -255,6 +255,15 @@ runs:
           done
         fi
 
+    - name: Setup SSH agent for bastion connection
+      shell: bash
+      if: inputs.mode == 'build'
+      run: |
+        eval "$(ssh-agent -s)"
+        echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> "$GITHUB_ENV"
+        echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> "$GITHUB_ENV"
+        echo "✅ SSH agent started"
+
     - name: Execute Packer operation
       id: execute
       shell: bash
