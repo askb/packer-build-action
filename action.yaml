@@ -205,6 +205,33 @@ runs:
         if [[ -n "${{ inputs.clouds_yaml }}" ]]; then
           mkdir -p ~/.config/openstack
           echo "${{ inputs.clouds_yaml }}" | base64 -d > ~/.config/openstack/clouds.yaml
+          echo "✅ Created clouds.yaml from base64 input"
+        elif [[ -n "${{ inputs.openstack_auth_url }}" ]]; then
+          # Decode password if needed
+          if DECODED_PASSWORD=$(echo "${{ inputs.openstack_password }}" | base64 -d 2>/dev/null); then
+            echo "✅ Password decoded from base64 for clouds.yaml"
+          else
+            DECODED_PASSWORD="${{ inputs.openstack_password }}"
+            echo "ℹ️  Using password as-is for clouds.yaml"
+          fi
+
+          mkdir -p ~/.config/openstack
+          
+          # Create clouds.yaml using cat with proper YAML formatting
+          cat > ~/.config/openstack/clouds.yaml <<EOF
+clouds:
+  openstack:
+    auth:
+      auth_url: ${{ inputs.openstack_auth_url }}
+      username: ${{ inputs.openstack_username }}
+      password: ${DECODED_PASSWORD}
+      project_id: ${{ inputs.openstack_project_id }}
+      domain_name: ${{ inputs.openstack_domain_name }}
+      user_domain_name: ${{ inputs.openstack_domain_name }}
+    region_name: ${{ inputs.openstack_region }}
+    identity_api_version: 3
+EOF
+          echo "✅ Created clouds.yaml configuration"
         fi
 
     - name: Initialize Packer plugins
