@@ -119,14 +119,14 @@ runs:
           echo "❌ Error: bastion_ip is required for build mode"
           exit 1
         fi
-        
+
         # Install jq if not available (needed for cloud-env.json generation)
         if ! command -v jq &> /dev/null; then
           echo "📦 Installing jq..."
           sudo apt-get update -qq
           sudo apt-get install -y -qq jq
         fi
-        
+
         echo "✅ Input validation passed"
 
     - name: Setup Python
@@ -178,7 +178,7 @@ runs:
             DECODED_PASSWORD="${{ inputs.openstack_password }}"
             echo "ℹ️  Using password as-is (not base64 encoded)"
           fi
-          
+
           # Create cloud-env.json using jq to properly escape special characters
           jq -n \
             --arg auth_url "${{ inputs.openstack_auth_url }}" \
@@ -197,7 +197,7 @@ runs:
               cloud_network: $network,
               ssh_proxy_host: $ssh_proxy
             }' > cloud-env.json
-          
+
           echo "✅ Created cloud-env.json configuration"
         fi
 
@@ -213,7 +213,7 @@ runs:
       run: |
         set -e
         echo "🔌 Initializing Packer plugins..."
-        
+
         TEMPLATE="${{ inputs.packer_template }}"
         if [[ -n "$TEMPLATE" ]]; then
           packer init "$TEMPLATE"
