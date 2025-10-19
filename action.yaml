@@ -270,6 +270,8 @@ runs:
       working-directory: ${{ inputs.path_prefix }}/${{ inputs.packer_working_dir }}
       env:
         OS_CLOUD: ${{ inputs.os_cloud }}
+        SSH_AUTH_SOCK: ${{ env.SSH_AUTH_SOCK }}
+        SSH_AGENT_PID: ${{ env.SSH_AGENT_PID }}
       run: |
         set -e
 
