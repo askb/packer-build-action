@@ -201,44 +201,11 @@ runs:
           echo "✅ Created cloud-env.json configuration"
         fi
 
-        # Create clouds.yaml if not provided
+        # Create clouds.yaml if provided
         if [[ -n "${{ inputs.clouds_yaml }}" ]]; then
-          mkdir -p ~/.config/openstack
-          echo "${{ inputs.clouds_yaml }}" | base64 -d > ~/.config/openstack/clouds.yaml
-          echo "✅ Created clouds.yaml from base64 input"
-        elif [[ -n "${{ inputs.openstack_auth_url }}" ]]; then
-          # Decode password if needed
-          if DECODED_PASSWORD=$(echo "${{ inputs.openstack_password }}" | base64 -d 2>/dev/null); then
-            echo "✅ Password decoded from base64 for clouds.yaml"
-          else
-            DECODED_PASSWORD="${{ inputs.openstack_password }}"
-            echo "ℹ️  Using password as-is for clouds.yaml"
-          fi
-
-          mkdir -p ~/.config/openstack
-          
-          # Set environment variables for heredoc
-          OS_AUTH_URL="${{ inputs.openstack_auth_url }}"
-          OS_USERNAME="${{ inputs.openstack_username }}"
-          OS_PROJECT_ID="${{ inputs.openstack_project_id }}"
-          OS_DOMAIN_NAME="${{ inputs.openstack_domain_name }}"
-          OS_REGION="${{ inputs.openstack_region }}"
-          
-          # Create clouds.yaml using environment variables
-          cat > ~/.config/openstack/clouds.yaml <<EOF
-clouds:
-  openstack:
-    auth:
-      auth_url: ${OS_AUTH_URL}
-      username: ${OS_USERNAME}
-      password: ${DECODED_PASSWORD}
-      project_id: ${OS_PROJECT_ID}
-      domain_name: ${OS_DOMAIN_NAME}
-      user_domain_name: ${OS_DOMAIN_NAME}
-    region_name: ${OS_REGION}
-    identity_api_version: 3
-EOF
-          echo "✅ Created clouds.yaml configuration"
+          mkdir -p "$HOME/.config/openstack"
+          echo "${{ inputs.clouds_yaml }}" | base64 -d > "$HOME/.config/openstack/clouds.yaml"
+          echo "✅ OpenStack clouds.yaml created from base64 input"
         fi
 
     - name: Initialize Packer plugins
