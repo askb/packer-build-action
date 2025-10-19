@@ -217,18 +217,25 @@ runs:
 
           mkdir -p ~/.config/openstack
           
-          # Create clouds.yaml using cat with proper YAML formatting
+          # Set environment variables for heredoc
+          OS_AUTH_URL="${{ inputs.openstack_auth_url }}"
+          OS_USERNAME="${{ inputs.openstack_username }}"
+          OS_PROJECT_ID="${{ inputs.openstack_project_id }}"
+          OS_DOMAIN_NAME="${{ inputs.openstack_domain_name }}"
+          OS_REGION="${{ inputs.openstack_region }}"
+          
+          # Create clouds.yaml using environment variables
           cat > ~/.config/openstack/clouds.yaml <<EOF
 clouds:
   openstack:
     auth:
-      auth_url: ${{ inputs.openstack_auth_url }}
-      username: ${{ inputs.openstack_username }}
+      auth_url: ${OS_AUTH_URL}
+      username: ${OS_USERNAME}
       password: ${DECODED_PASSWORD}
-      project_id: ${{ inputs.openstack_project_id }}
-      domain_name: ${{ inputs.openstack_domain_name }}
-      user_domain_name: ${{ inputs.openstack_domain_name }}
-    region_name: ${{ inputs.openstack_region }}
+      project_id: ${OS_PROJECT_ID}
+      domain_name: ${OS_DOMAIN_NAME}
+      user_domain_name: ${OS_DOMAIN_NAME}
+    region_name: ${OS_REGION}
     identity_api_version: 3
 EOF
           echo "✅ Created clouds.yaml configuration"
