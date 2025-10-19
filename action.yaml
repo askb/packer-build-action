@@ -268,6 +268,13 @@ runs:
         TEMPLATE="${{ inputs.packer_template }}"
         VARS_FILE="${{ inputs.packer_vars_file }}"
 
+        # Ensure provision directory is accessible
+        # Check if provision exists in examples and symlink to current dir
+        if [[ -d "examples/provision" && ! -d "provision" ]]; then
+          echo "Creating symlink to examples/provision..."
+          ln -s examples/provision provision
+        fi
+
         if [[ "$MODE" == "validate" ]]; then
           echo "🔍 Running Packer validation..."
           ${{ github.action_path }}/scripts/validate-packer.sh
