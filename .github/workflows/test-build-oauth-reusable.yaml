@@ -1,8 +1,18 @@
 ---
 # SPDX-License-Identifier: Apache-2.0
 # Test Packer Build with OAuth Reusable Keys
+#
+# ⚠️ DISABLED: This workflow is currently disabled because OAuth with reusable keys
+# (tailscale_use_ephemeral_keys: false) is not supported by the bastion action.
+#
+# The bastion VM uses cloud-init which cannot use OAuth directly. It requires either:
+#   - OAuth with ephemeral keys (tailscale_use_ephemeral_keys: true) - RECOMMENDED
+#   - Legacy auth key (tailscale_auth_key)
+#
+# This workflow is kept for reference but will always fail until the bastion action
+# adds support for OAuth reusable keys on cloud-init based instances.
 
-name: Test Packer Build (OAuth Reusable)
+name: Test Packer Build (OAuth Reusable) [DISABLED]
 
 # yamllint disable-line rule:truthy
 on:
@@ -23,22 +33,23 @@ on:
         required: false
         type: boolean
         default: false
-  push:
-    branches:
-      - main
-    paths:
-      - "examples/**"
-      - "scripts/**"
-      - "action.yaml"
-      - ".github/workflows/test-build-oauth-reusable.yaml"
-  pull_request:
-    branches:
-      - main
-    paths:
-      - "examples/**"
-      - "scripts/**"
-      - "action.yaml"
-      - ".github/workflows/test-build-oauth-reusable.yaml"
+  # Disabled auto-triggers - workflow will only run via manual dispatch
+  # push:
+  #   branches:
+  #     - main
+  #   paths:
+  #     - "examples/**"
+  #     - "scripts/**"
+  #     - "action.yaml"
+  #     - ".github/workflows/test-build-oauth-reusable.yaml"
+  # pull_request:
+  #   branches:
+  #     - main
+  #   paths:
+  #     - "examples/**"
+  #     - "scripts/**"
+  #     - "action.yaml"
+  #     - ".github/workflows/test-build-oauth-reusable.yaml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

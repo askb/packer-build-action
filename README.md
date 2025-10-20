@@ -196,20 +196,33 @@ tailscale_use_ephemeral_keys: "true"  # Default
 
 ---
 
-### 2. OAuth with Reusable Keys
+### 2. OAuth with Reusable Keys ⚠️ **NOT SUPPORTED**
 
-**Workflow:** `.github/workflows/test-build-oauth-reusable.yaml`
+**Workflow:** `.github/workflows/test-build-oauth-reusable.yaml` **[DISABLED]**
 
-**Description:** Tests Packer build using Tailscale OAuth with reusable (non-ephemeral) keys. Keys persist until manually revoked.
+**Status:** ❌ **This authentication method is currently not supported by the bastion action.**
 
-**Bastion Configuration:**
+**Reason:** The bastion VM uses cloud-init to configure Tailscale, and cloud-init cannot use OAuth directly. OAuth with reusable keys (ephemeral=false) requires direct OAuth authentication which is not possible in the cloud-init environment.
+
+**Alternatives:**
+- Use **OAuth with Ephemeral Keys** (recommended) - generates temporary keys from OAuth
+- Use **Legacy Auth Key** - uses pre-created Tailscale auth key
+
+**Technical Details:**
 ```yaml
+# This configuration will FAIL:
 tailscale_oauth_client_id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
 tailscale_oauth_secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
-tailscale_use_ephemeral_keys: "false"
+tailscale_use_ephemeral_keys: "false"  # ❌ Not supported for bastion
 ```
 
-**Use Case:** When you need persistent keys that don't expire automatically.
+**Error Message:**
+```
+Error: OAuth without ephemeral keys is not supported for bastion hosts
+The bastion (cloud-init) cannot use OAuth directly.
+```
+
+The workflow file is kept for reference but is disabled (no auto-triggers) and will always fail.
 
 ---
 
@@ -245,28 +258,28 @@ tailscale_auth_key: ${{ secrets.TAILSCALE_AUTH_KEY }}
 # OAuth Ephemeral (recommended)
 gh workflow run test-build-minimal.yaml
 
-# OAuth Reusable
-gh workflow run test-build-oauth-reusable.yaml
-
 # Legacy Auth Key
 gh workflow run test-build-authkey.yaml
+
+# OAuth Reusable - DISABLED (not supported, will fail)
+# gh workflow run test-build-oauth-reusable.yaml
 ```
 
 ---
 
 ### Authentication Method Comparison
 
-| Method | Security | Complexity | Recommended | Key Management |
-|--------|----------|------------|-------------|----------------|
-| OAuth Ephemeral | ⭐⭐⭐ | Low | ✅ Yes | Automatic |
-| OAuth Reusable | ⭐⭐ | Low | Maybe | Manual revocation |
-| Legacy Auth Key | ⭐ | Very Low | ❌ No | Manual rotation |
+| Method | Security | Complexity | Supported | Recommended | Key Management |
+|--------|----------|------------|-----------|-------------|----------------|
+| OAuth Ephemeral | ⭐⭐⭐ | Low | ✅ Yes | ✅ Yes | Automatic |
+| OAuth Reusable | ⭐⭐ | Low | ❌ **No** | ❌ No | N/A (not supported) |
+| Legacy Auth Key | ⭐ | Very Low | ✅ Yes | ⚠️ Deprecated | Manual rotation |
 
 ---
 
 ### How Tailscale SSH Works with Packer
 
-All three authentication methods result in the same SSH behavior:
+The two supported authentication methods (OAuth Ephemeral and Legacy Auth Key) result in the same SSH behavior:
 
 1. **Bastion Setup:** The bastion action sets up Tailscale on both the GitHub runner and the bastion instance
 2. **Network Join:** Both join the same Tailscale network using the chosen auth method
