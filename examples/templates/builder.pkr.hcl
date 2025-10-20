@@ -165,12 +165,14 @@ source "openstack" "builder" {
   ssh_timeout  = var.ssh_timeout
 
   # Bastion configuration (conditional)
-  # Note: Using Tailscale SSH - no agent auth needed, Tailscale handles authentication
+  # Note: Using Tailscale SSH with interactive mode
+  # ssh_bastion_interactive tells Packer to use the system SSH client,
+  # which allows Tailscale to handle authentication automatically.
+  # This eliminates the need for traditional SSH keys/passwords/agent auth.
   ssh_bastion_host              = var.bastion_host != "" ? var.bastion_host : null
   ssh_bastion_username          = var.bastion_host != "" ? var.bastion_user : null
   ssh_bastion_port              = var.bastion_host != "" ? var.bastion_port : null
-  ssh_bastion_agent_auth        = false
-  ssh_bastion_private_key_file  = null
+  ssh_bastion_interactive       = var.bastion_host != "" ? true : null
 
   # Connection settings
   communicator                  = "ssh"
