@@ -11,6 +11,8 @@ on:
       - main
     paths:
       - "tests/**"
+      - "scripts/**"
+      - "action.yaml"
       - "pyproject.toml"
       - ".github/workflows/test-python.yaml"
   pull_request:
@@ -18,6 +20,8 @@ on:
       - main
     paths:
       - "tests/**"
+      - "scripts/**"
+      - "action.yaml"
       - "pyproject.toml"
       - ".github/workflows/test-python.yaml"
   workflow_dispatch:

@@ -5,6 +5,20 @@ name: Test Packer Build with Bastion
 
 # yamllint disable-line rule:truthy
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - "action.yaml"
+      - "examples/**"
+      - ".github/workflows/test-build.yaml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "action.yaml"
+      - "examples/**"
+      - ".github/workflows/test-build.yaml"
   workflow_dispatch:
     inputs:
       template:
@@ -48,6 +62,7 @@ jobs:
           operation: setup
           tailscale_oauth_client_id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
           tailscale_oauth_secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
+          tailscale_tags: "tag:bastion"
           openstack_auth_url: ${{ secrets.OPENSTACK_AUTH_URL }}
           openstack_project_id: ${{ secrets.OPENSTACK_PROJECT_ID }}
           openstack_username: ${{ secrets.OPENSTACK_USERNAME }}

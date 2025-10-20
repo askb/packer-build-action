@@ -176,21 +176,37 @@ This repository includes test workflows for each Tailscale authentication method
 
 **Workflow:** `.github/workflows/test-build-minimal.yaml`
 
-**Description:** Tests Packer build using Tailscale OAuth with ephemeral keys. This is the **recommended** authentication method.
+**Description:** Tests Packer build using Tailscale OAuth with ephemeral keys. This is the **recommended** authentication method for production use.
+
+**Status:** ✅ **WORKING** (as of 2025-10-21 after fixes to `openstack-bastion-action`)
 
 **Benefits:**
-- ✅ Automatic key rotation
+
+- ✅ Automatic key rotation (no 90-day manual rotation like legacy auth keys)
 - ✅ Better security (keys expire automatically)
 - ✅ No manual key management
+- ✅ Persistent nodes (survive network disconnects)
+- ✅ Production-ready
+
+**Recent Fixes (2025-10-21):**
+The `openstack-bastion-action` dependency was updated with two critical fixes:
+
+1. Changed `EPHEMERAL=false` - Creates persistent nodes instead of auto-removed ephemeral nodes
+2. Changed runner tags to `tag:ci` - Correct ACL permissions for GitHub Actions runner
+
+These fixes ensure OAuth ephemeral authentication works reliably for production workloads.
 
 **Bastion Configuration:**
+
 ```yaml
 tailscale_oauth_client_id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
 tailscale_oauth_secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
-tailscale_use_ephemeral_keys: "true"  # Default
+tailscale_use_ephemeral_keys: "true" # Generates OAuth ephemeral keys
+tailscale_tags: "tag:bastion" # Required for proper ACL permissions
 ```
 
 **Required Secrets:**
+
 - `TAILSCALE_OAUTH_CLIENT_ID`
 - `TAILSCALE_OAUTH_SECRET`
 
@@ -205,18 +221,21 @@ tailscale_use_ephemeral_keys: "true"  # Default
 **Reason:** The bastion VM uses cloud-init to configure Tailscale, and cloud-init cannot use OAuth directly. OAuth with reusable keys (ephemeral=false) requires direct OAuth authentication which is not possible in the cloud-init environment.
 
 **Alternatives:**
+
 - Use **OAuth with Ephemeral Keys** (recommended) - generates temporary keys from OAuth
 - Use **Legacy Auth Key** - uses pre-created Tailscale auth key
 
 **Technical Details:**
+
 ```yaml
 # This configuration will FAIL:
 tailscale_oauth_client_id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
 tailscale_oauth_secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
-tailscale_use_ephemeral_keys: "false"  # ❌ Not supported for bastion
+tailscale_use_ephemeral_keys: "false" # ❌ Not supported for bastion
 ```
 
 **Error Message:**
+
 ```
 Error: OAuth without ephemeral keys is not supported for bastion hosts
 The bastion (cloud-init) cannot use OAuth directly.
@@ -233,11 +252,13 @@ The workflow file is kept for reference but is disabled (no auto-triggers) and w
 **Description:** Tests Packer build using the legacy Tailscale auth key method. This method is **deprecated** but still supported for backwards compatibility.
 
 **Bastion Configuration:**
+
 ```yaml
 tailscale_auth_key: ${{ secrets.TAILSCALE_AUTH_KEY }}
 ```
 
 **Required Secrets:**
+
 - `TAILSCALE_AUTH_KEY`
 
 **Note:** OAuth methods are recommended over legacy auth keys.
@@ -247,6 +268,7 @@ tailscale_auth_key: ${{ secrets.TAILSCALE_AUTH_KEY }}
 ### Running Tests
 
 **Via GitHub UI:**
+
 1. Go to the Actions tab
 2. Select the workflow you want to run
 3. Click "Run workflow"
@@ -254,6 +276,7 @@ tailscale_auth_key: ${{ secrets.TAILSCALE_AUTH_KEY }}
 5. Click the "Run workflow" button
 
 **Via GitHub CLI:**
+
 ```bash
 # OAuth Ephemeral (recommended)
 gh workflow run test-build-minimal.yaml
@@ -269,11 +292,11 @@ gh workflow run test-build-authkey.yaml
 
 ### Authentication Method Comparison
 
-| Method | Security | Complexity | Supported | Recommended | Key Management |
-|--------|----------|------------|-----------|-------------|----------------|
-| OAuth Ephemeral | ⭐⭐⭐ | Low | ✅ Yes | ✅ Yes | Automatic |
-| OAuth Reusable | ⭐⭐ | Low | ❌ **No** | ❌ No | N/A (not supported) |
-| Legacy Auth Key | ⭐ | Very Low | ✅ Yes | ⚠️ Deprecated | Manual rotation |
+| Method          | Security | Complexity | Supported | Recommended   | Key Management      |
+| --------------- | -------- | ---------- | --------- | ------------- | ------------------- |
+| OAuth Ephemeral | ⭐⭐⭐   | Low        | ✅ Yes    | ✅ Yes        | Automatic           |
+| OAuth Reusable  | ⭐⭐     | Low        | ❌ **No** | ❌ No         | N/A (not supported) |
+| Legacy Auth Key | ⭐       | Very Low   | ✅ Yes    | ⚠️ Deprecated | Manual rotation     |
 
 ---
 
