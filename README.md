@@ -168,9 +168,120 @@ packer-build-action/
 - [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues and solutions
 - [Development](docs/DEVELOPMENT.md) - Contributing guide
 
+## Test Workflows
+
+This repository includes test workflows for each Tailscale authentication method supported by the bastion action:
+
+### 1. OAuth with Ephemeral Keys (Recommended) ⭐
+
+**Workflow:** `.github/workflows/test-build-minimal.yaml`
+
+**Description:** Tests Packer build using Tailscale OAuth with ephemeral keys. This is the **recommended** authentication method.
+
+**Benefits:**
+- ✅ Automatic key rotation
+- ✅ Better security (keys expire automatically)
+- ✅ No manual key management
+
+**Bastion Configuration:**
+```yaml
+tailscale_oauth_client_id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+tailscale_oauth_secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
+tailscale_use_ephemeral_keys: "true"  # Default
+```
+
+**Required Secrets:**
+- `TAILSCALE_OAUTH_CLIENT_ID`
+- `TAILSCALE_OAUTH_SECRET`
+
+---
+
+### 2. OAuth with Reusable Keys
+
+**Workflow:** `.github/workflows/test-build-oauth-reusable.yaml`
+
+**Description:** Tests Packer build using Tailscale OAuth with reusable (non-ephemeral) keys. Keys persist until manually revoked.
+
+**Bastion Configuration:**
+```yaml
+tailscale_oauth_client_id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+tailscale_oauth_secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
+tailscale_use_ephemeral_keys: "false"
+```
+
+**Use Case:** When you need persistent keys that don't expire automatically.
+
+---
+
+### 3. Legacy Auth Key (Deprecated)
+
+**Workflow:** `.github/workflows/test-build-authkey.yaml`
+
+**Description:** Tests Packer build using the legacy Tailscale auth key method. This method is **deprecated** but still supported for backwards compatibility.
+
+**Bastion Configuration:**
+```yaml
+tailscale_auth_key: ${{ secrets.TAILSCALE_AUTH_KEY }}
+```
+
+**Required Secrets:**
+- `TAILSCALE_AUTH_KEY`
+
+**Note:** OAuth methods are recommended over legacy auth keys.
+
+---
+
+### Running Tests
+
+**Via GitHub UI:**
+1. Go to the Actions tab
+2. Select the workflow you want to run
+3. Click "Run workflow"
+4. Optionally customize inputs
+5. Click the "Run workflow" button
+
+**Via GitHub CLI:**
+```bash
+# OAuth Ephemeral (recommended)
+gh workflow run test-build-minimal.yaml
+
+# OAuth Reusable
+gh workflow run test-build-oauth-reusable.yaml
+
+# Legacy Auth Key
+gh workflow run test-build-authkey.yaml
+```
+
+---
+
+### Authentication Method Comparison
+
+| Method | Security | Complexity | Recommended | Key Management |
+|--------|----------|------------|-------------|----------------|
+| OAuth Ephemeral | ⭐⭐⭐ | Low | ✅ Yes | Automatic |
+| OAuth Reusable | ⭐⭐ | Low | Maybe | Manual revocation |
+| Legacy Auth Key | ⭐ | Very Low | ❌ No | Manual rotation |
+
+---
+
+### How Tailscale SSH Works with Packer
+
+All three authentication methods result in the same SSH behavior:
+
+1. **Bastion Setup:** The bastion action sets up Tailscale on both the GitHub runner and the bastion instance
+2. **Network Join:** Both join the same Tailscale network using the chosen auth method
+3. **Packer Connection:** Packer uses `ssh_bastion_agent_auth = true` to satisfy its validation requirement
+4. **SSH Agent:** An empty SSH agent is started (required by Packer, even though not used)
+5. **Tailscale Intercept:** When Packer connects, Tailscale SSH intercepts and handles authentication automatically
+6. **No Traditional Keys:** No SSH private keys, passwords, or agent keys are needed
+
+**Key Insight:** The authentication method only affects how the runner and bastion join the Tailscale network, not how Packer connects through the bastion.
+
+---
+
 ## Related Actions
 
-- [openstack-bastion-action](https://github.com/lfreleng-actions/openstack-bastion-action) - Bastion host management
+- [tailscale-openstack-bastion-action](https://github.com/askb/tailscale-openstack-bastion-action) - Bastion host management with Tailscale
 
 ## License
 

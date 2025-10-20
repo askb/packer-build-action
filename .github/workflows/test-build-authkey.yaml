@@ -1,8 +1,8 @@
 ---
 # SPDX-License-Identifier: Apache-2.0
-# Test Packer Build with OAuth Ephemeral Keys
+# Test Packer Build with Legacy Auth Key
 
-name: Test Packer Build (OAuth Ephemeral)
+name: Test Packer Build (Legacy Auth Key)
 
 # yamllint disable-line rule:truthy
 on:
@@ -23,78 +23,39 @@ on:
         required: false
         type: boolean
         default: false
-  push:
-    branches:
-      - main
-    paths:
-      - "examples/**"
-      - "scripts/**"
-      - "action.yaml"
-      - ".github/workflows/test-build-minimal.yaml"
-  pull_request:
-    branches:
-      - main
-    paths:
-      - "examples/**"
-      - "scripts/**"
-      - "action.yaml"
-      - ".github/workflows/test-build-minimal.yaml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  prepare:
-    runs-on: ubuntu-latest
-    outputs:
-      has-changes: ${{ steps.check.outputs.has-changes }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Check for changes
-        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
-        id: check
-        with:
-          base: ${{ github.event.before || format('refs/heads/{0}', github.ref_name) }}
-          filters: |
-            has-changes:
-              - 'examples/**'
-              - 'scripts/**'
-              - 'action.yaml'
-              - '.github/workflows/**'
-
   test-packer-build:
-    needs: prepare
     runs-on: ubuntu-latest
-    if: |
-      needs.prepare.outputs.has-changes == 'true' ||
-      github.event_name == 'workflow_dispatch'
+    timeout-minutes: 45
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       # ========================================
-      # Step 1: Setup Bastion Host
+      # Step 1: Setup Bastion with Legacy Auth Key
       # ========================================
-      - name: Setup OpenStack Bastion with Tailscale
+      - name: Setup OpenStack Bastion with Tailscale (Auth Key)
         id: bastion
         uses: askb/tailscale-openstack-bastion-action@main
         with:
           operation: setup
-          tailscale_oauth_client_id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
-          tailscale_oauth_secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
+          tailscale_auth_key: ${{ secrets.TAILSCALE_AUTH_KEY }}
           openstack_auth_url: ${{ secrets.OPENSTACK_AUTH_URL }}
           openstack_project_id: ${{ secrets.OPENSTACK_PROJECT_ID }}
           openstack_username: ${{ secrets.OPENSTACK_USERNAME }}
           openstack_password: ${{ secrets.OPENSTACK_PASSWORD_B64 }}
           openstack_region: ${{ secrets.OPENSTACK_REGION }}
-          bastion_name: "packer-test-${{ github.run_id }}"
+          bastion_name: "packer-authkey-${{ github.run_id }}"
           bastion_flavor: "v3-standard-2"
           bastion_image: "Ubuntu 22.04.5 LTS (x86_64) [2025-03-27]"
           bastion_network: "odlci"
+          debug_mode: ${{ inputs.debug_mode || 'false' }}
 
       # ========================================
       # Step 2: Run Packer Build Action
@@ -125,7 +86,7 @@ jobs:
         uses: askb/tailscale-openstack-bastion-action@main
         with:
           operation: teardown
-          bastion_name: "packer-test-${{ github.run_id }}"
+          bastion_name: "packer-authkey-${{ github.run_id }}"
           openstack_auth_url: ${{ secrets.OPENSTACK_AUTH_URL }}
           openstack_project_id: ${{ secrets.OPENSTACK_PROJECT_ID }}
           openstack_username: ${{ secrets.OPENSTACK_USERNAME }}
@@ -134,13 +95,15 @@ jobs:
 
   summary:
     if: always()
-    needs: [prepare, test-packer-build]
+    needs: test-packer-build
     runs-on: ubuntu-latest
     steps:
       - name: Build summary
         run: |
           {
-            echo "## Packer Build Test Summary"
+            echo "## Packer Build Test Summary - Legacy Auth Key"
+            echo ""
+            echo "**Authentication Method:** Legacy Tailscale Auth Key (Deprecated)"
             echo ""
             echo "- **Workflow:** ${{ github.workflow }}"
             echo "- **Run ID:** ${{ github.run_id }}"
