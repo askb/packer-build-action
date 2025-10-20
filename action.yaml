@@ -266,6 +266,15 @@ runs:
       env:
         OS_CLOUD: ${{ inputs.os_cloud }}
       run: |
+        # Start SSH agent for Packer (required even for Tailscale SSH)
+        # Packer requires ssh_bastion_agent_auth to be true, so we need an agent running
+        # Tailscale SSH will handle actual authentication, agent can be empty
+        if [[ "${{ inputs.mode }}" == "build" ]]; then
+          eval "$(ssh-agent -s)"
+          export SSH_AUTH_SOCK SSH_AGENT_PID
+          echo "✅ SSH agent started for Packer (PID: $SSH_AGENT_PID)"
+        fi
+
         set -e
 
         MODE="${{ inputs.mode }}"
