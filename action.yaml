@@ -259,36 +259,28 @@ runs:
           done
         fi
 
-    - name: Setup SSH agent for bastion connection
-      shell: bash
-      if: inputs.mode == 'build'
-      run: |
-        # Start SSH agent
-        eval "$(ssh-agent -s)"
-        echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> "$GITHUB_ENV"
-        echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> "$GITHUB_ENV"
-        echo "✅ SSH agent started"
-
-        # Add bastion SSH private key if provided
-        if [[ -n "${{ inputs.bastion_ssh_private_key }}" ]]; then
-          echo "${{ inputs.bastion_ssh_private_key }}" > /tmp/bastion_key
-          chmod 600 /tmp/bastion_key
-          ssh-add /tmp/bastion_key
-          rm /tmp/bastion_key
-          echo "✅ Bastion SSH key added to agent"
-        else
-          echo "⚠️  No bastion SSH key provided - build may fail if bastion connection required"
-        fi
-
     - name: Execute Packer operation
       id: execute
       shell: bash
       working-directory: ${{ inputs.path_prefix }}/${{ inputs.packer_working_dir }}
       env:
         OS_CLOUD: ${{ inputs.os_cloud }}
-        SSH_AUTH_SOCK: ${{ env.SSH_AUTH_SOCK }}
-        SSH_AGENT_PID: ${{ env.SSH_AGENT_PID }}
       run: |
+        # Start SSH agent if in build mode
+        if [[ "${{ inputs.mode }}" == "build" ]]; then
+          eval "$(ssh-agent -s)"
+          export SSH_AUTH_SOCK SSH_AGENT_PID
+          echo "✅ SSH agent started (PID: $SSH_AGENT_PID)"
+
+          # Add bastion SSH private key if provided
+          if [[ -n "${{ inputs.bastion_ssh_private_key }}" ]]; then
+            echo "${{ inputs.bastion_ssh_private_key }}" > /tmp/bastion_key
+            chmod 600 /tmp/bastion_key
+            ssh-add /tmp/bastion_key
+            rm /tmp/bastion_key
+            echo "✅ Bastion SSH key added to agent"
+          fi
+        fi
         set -e
 
         MODE="${{ inputs.mode }}"
