@@ -81,8 +81,8 @@ jobs:
           mode: build
           bastion_ip: ${{ steps.bastion.outputs.bastion_ip }}
           bastion_ssh_user: "root"
-          packer_template: ${{ github.event.inputs.template }}
-          packer_vars_file: ${{ github.event.inputs.vars_file }}
+          packer_template: ${{ github.event.inputs.template || 'templates/builder.pkr.hcl' }}
+          packer_vars_file: ${{ github.event.inputs.vars_file || 'vars/ubuntu-22.04.pkrvars.hcl' }}
           packer_working_dir: "."
           path_prefix: "target-repo"
           os_cloud: "openstack"
