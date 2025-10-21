@@ -259,6 +259,12 @@ runs:
           done
         fi
 
+        # Install commonly used plugins that may not be declared in required_plugins
+        # This works around upstream templates that reference plugins without declaring them
+        echo "📦 Installing additional common plugins..."
+        packer plugins install github.com/hashicorp/docker latest || echo "ℹ️  Docker plugin already installed or not needed"
+        packer plugins install github.com/hashicorp/ansible latest || echo "ℹ️  Ansible plugin already installed or not needed"
+
     - name: Execute Packer operation
       id: execute
       shell: bash
