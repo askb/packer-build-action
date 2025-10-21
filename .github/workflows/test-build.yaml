@@ -72,7 +72,7 @@ jobs:
           bastion_flavor: "v3-standard-2"
           bastion_image: "Ubuntu 22.04.5 LTS (x86_64) [2025-03-27]"
           bastion_network: "odlci"
-          bastion_wait_timeout: "300"
+          bastion_wait_timeout: "600"
 
       - name: Build with Packer
         id: build
