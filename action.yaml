@@ -311,7 +311,7 @@ runs:
           fi
 
           PACKER_CMD="packer build"
-          PACKER_CMD="$PACKER_CMD -only='*.openstack.builder'"
+          PACKER_CMD="$PACKER_CMD -only='openstack.builder'"
           PACKER_CMD="$PACKER_CMD -var-file=cloud-env.json"
           PACKER_CMD="$PACKER_CMD -var-file=$VARS_FILE"
           PACKER_CMD="$PACKER_CMD $TEMPLATE"
