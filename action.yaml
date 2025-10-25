@@ -319,6 +319,9 @@ runs:
           echo "📋 cloud-env.json content (for debugging):"
           jq 'del(.cloud_password)' cloud-env.json || cat cloud-env.json
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📋 Template source block (bastion config):"
+          sed -n '/^source "openstack" "builder"/,/^}/p' "$TEMPLATE" | grep -A 2 -B 2 "bastion"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
           PACKER_CMD="packer build"
           PACKER_CMD="$PACKER_CMD -only='openstack.builder'"
