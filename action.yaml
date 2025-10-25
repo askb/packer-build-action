@@ -191,7 +191,6 @@ runs:
           jq -n \
             --arg auth_url "${{ inputs.openstack_auth_url }}" \
             --arg tenant "${{ inputs.openstack_project_id }}" \
-            --arg domain "${{ inputs.openstack_domain_name }}" \
             --arg username "${{ inputs.openstack_username }}" \
             --arg password "${DECODED_PASSWORD}" \
             --arg region "${{ inputs.openstack_region }}" \
@@ -200,10 +199,9 @@ runs:
             --arg bastion_user "${{ inputs.bastion_ssh_user }}" \
             '{
               cloud_auth_url: $auth_url,
-              cloud_tenant_name: $tenant,
-              cloud_domain_name: $domain,
-              cloud_username: $username,
-              cloud_password: $password,
+              cloud_tenant: $tenant,
+              cloud_user: $username,
+              cloud_pass: $password,
               cloud_region: $region,
               cloud_network: $network,
               ssh_bastion_host: $bastion_host,
