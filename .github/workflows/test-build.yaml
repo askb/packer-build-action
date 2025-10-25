@@ -76,6 +76,7 @@ jobs:
           openstack_project_id: ${{ secrets.OPENSTACK_PROJECT_ID }}
           openstack_username: ${{ secrets.OPENSTACK_USERNAME }}
           openstack_password: ${{ secrets.OPENSTACK_PASSWORD_B64 }}
+          openstack_domain_name: ${{ secrets.OPENSTACK_DOMAIN_NAME }}
           openstack_region: ${{ secrets.OPENSTACK_REGION }}
           bastion_name: "packer-build-test-${{ github.run_id }}"
           bastion_flavor: "v3-standard-2"
@@ -115,6 +116,7 @@ jobs:
           openstack_project_id: ${{ secrets.OPENSTACK_PROJECT_ID }}
           openstack_username: ${{ secrets.OPENSTACK_USERNAME }}
           openstack_password: ${{ secrets.OPENSTACK_PASSWORD_B64 }}
+          openstack_domain_name: ${{ secrets.OPENSTACK_DOMAIN_NAME }}
           openstack_region: ${{ secrets.OPENSTACK_REGION }}
 
       - name: Summary
