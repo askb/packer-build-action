@@ -275,6 +275,10 @@ runs:
       env:
         OS_CLOUD: ${{ inputs.os_cloud }}
       run: |
+        # Enable Packer debug logging to troubleshoot bastion issues
+        export PACKER_LOG=1
+        export PACKER_LOG_PATH="/tmp/packer-debug.log"
+        
         # Start SSH agent for Packer (required even for Tailscale SSH)
         # Packer requires ssh_bastion_agent_auth to be true, so we need an agent running
         # Tailscale SSH will handle actual authentication, agent can be empty
@@ -309,6 +313,12 @@ runs:
             echo "❌ Error: packer_template and packer_vars_file required for build mode"
             exit 1
           fi
+          
+          # Debug: Show cloud-env.json content (with password redacted)
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📋 cloud-env.json content (for debugging):"
+          jq 'del(.cloud_password)' cloud-env.json || cat cloud-env.json
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
           PACKER_CMD="packer build"
           PACKER_CMD="$PACKER_CMD -only='openstack.builder'"
@@ -318,6 +328,15 @@ runs:
 
           echo "Executing: $PACKER_CMD"
           eval $PACKER_CMD
+          
+          # Show relevant parts of debug log if build fails
+          if [ $? -ne 0 ] && [ -f "/tmp/packer-debug.log" ]; then
+            echo ""
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "📋 Packer Debug Log (bastion-related lines):"
+            grep -i "bastion\|ssh.*connect" /tmp/packer-debug.log | tail -50 || echo "No bastion mentions in debug log"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          fi
 
           echo "build_status=success" >> $GITHUB_OUTPUT
           echo "image_name=Built successfully" >> $GITHUB_OUTPUT
