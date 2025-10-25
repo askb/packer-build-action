@@ -204,6 +204,7 @@ runs:
               cloud_pass: $password,
               cloud_region: $region,
               cloud_network: $network,
+              cloud_user_data: "",
               ssh_bastion_host: $bastion_host,
               ssh_bastion_username: $bastion_user,
               ssh_bastion_agent_auth: true
