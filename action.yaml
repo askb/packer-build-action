@@ -292,6 +292,15 @@ runs:
         TEMPLATE="${{ inputs.packer_template }}"
         VARS_FILE="${{ inputs.packer_vars_file }}"
 
+        # Debug: Show current directory and file locations
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "📂 Current working directory: $(pwd)"
+        echo "📂 TEMPLATE path: $TEMPLATE"
+        echo "📂 VARS_FILE path: $VARS_FILE"
+        echo "📂 Files in current directory:"
+        ls -la | head -20
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
         # Ensure provision directory is accessible
         # Check if provision exists in examples and symlink to current dir
         if [[ -d "examples/provision" && ! -d "provision" ]]; then
