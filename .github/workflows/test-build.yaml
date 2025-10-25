@@ -55,6 +55,14 @@ jobs:
           ref: master  # Ensure we get latest with bastion support (v0.17.0+)
           path: target-repo
           submodules: recursive
+      
+      - name: Verify checked out commit
+        run: |
+          cd target-repo
+          echo "Checked out commit:"
+          git log -1 --oneline
+          echo "Checking for bastion in template:"
+          grep -c "ssh_bastion" templates/builder.pkr.hcl || echo "NO BASTION CONFIG FOUND!"
 
       - name: Setup bastion
         id: bastion
