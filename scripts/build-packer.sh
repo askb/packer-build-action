@@ -13,7 +13,6 @@ set -euo pipefail
 # Required parameters
 TEMPLATE="${PACKER_TEMPLATE:-}"
 VARS_FILE="${PACKER_VARS_FILE:-}"
-BASTION_IP="${BASTION_IP:-}"
 
 if [[ -z "$TEMPLATE" ]]; then
     echo "❌ Error: PACKER_TEMPLATE environment variable is required"
@@ -40,7 +39,6 @@ echo "Packer Build"
 echo "======================================="
 echo "Template: $TEMPLATE"
 echo "Vars File: $VARS_FILE"
-echo "Bastion IP: ${BASTION_IP:-<not set>}"
 echo "======================================="
 
 # Initialize Packer plugins
@@ -58,12 +56,7 @@ fi
 # Add variables file
 PACKER_ARGS+=(-var-file="$VARS_FILE")
 
-# Add bastion host if provided
-if [[ -n "$BASTION_IP" ]]; then
-    PACKER_ARGS+=(-var=ssh_bastion_host="$BASTION_IP")
-    PACKER_ARGS+=(-var=ssh_bastion_username=root)
-    PACKER_ARGS+=(-var=ssh_bastion_agent_auth=true)
-fi
+# Note: Bastion variables are passed via cloud-env.json, not via command line
 
 # Add template
 PACKER_ARGS+=("$TEMPLATE")
