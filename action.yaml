@@ -123,11 +123,6 @@ runs:
     - name: Validate inputs and install dependencies
       shell: bash
       run: |
-        if [[ "${{ inputs.mode }}" == "build" && -z "${{ inputs.bastion_ip }}" ]]; then
-          echo "❌ Error: bastion_ip is required for build mode"
-          exit 1
-        fi
-
         # Install jq if not available (needed for cloud-env.json generation)
         if ! command -v jq &> /dev/null; then
           echo "📦 Installing jq..."
@@ -136,6 +131,13 @@ runs:
         fi
 
         echo "✅ Input validation passed"
+        
+        # Info about bastion mode
+        if [[ -n "${{ inputs.bastion_ip }}" ]]; then
+          echo "ℹ️  Bastion mode enabled - will connect via ${{ inputs.bastion_ip }}"
+        else
+          echo "ℹ️  Direct connection mode - using floating IP"
+        fi
 
     - name: Setup Python
       uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
