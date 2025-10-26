@@ -188,6 +188,9 @@ runs:
           fi
 
           # Create cloud-env.json using jq to properly escape special characters
+          # NOTE: Using ssh_proxy_host (legacy proxy method) which is proven to work
+          # with OpenStack. The newer ssh_bastion_* method may not be fully supported
+          # by the Packer OpenStack plugin.
           jq -n \
             --arg auth_url "${{ inputs.openstack_auth_url }}" \
             --arg tenant "${{ inputs.openstack_project_id }}" \
@@ -195,8 +198,7 @@ runs:
             --arg password "${DECODED_PASSWORD}" \
             --arg region "${{ inputs.openstack_region }}" \
             --arg network "${{ inputs.openstack_network_id }}" \
-            --arg bastion_host "${{ inputs.bastion_ip }}" \
-            --arg bastion_user "${{ inputs.bastion_ssh_user }}" \
+            --arg ssh_proxy "${{ inputs.bastion_ip }}" \
             '{
               cloud_auth_url: $auth_url,
               cloud_tenant: $tenant,
@@ -205,9 +207,7 @@ runs:
               cloud_region: $region,
               cloud_network: $network,
               cloud_user_data: "",
-              ssh_bastion_host: $bastion_host,
-              ssh_bastion_username: $bastion_user,
-              ssh_bastion_agent_auth: true
+              ssh_proxy_host: $ssh_proxy
             }' > cloud-env.json
 
           echo "✅ Created cloud-env.json configuration"
@@ -327,13 +327,11 @@ runs:
           echo "📋 cloud-env.json content (for debugging):"
           jq 'del(.cloud_pass)' cloud-env.json || cat cloud-env.json
           echo ""
-          echo "📋 Bastion configuration values:"
-          echo "  ssh_bastion_host: $(jq -r '.ssh_bastion_host // "NOT SET"' cloud-env.json)"
-          echo "  ssh_bastion_username: $(jq -r '.ssh_bastion_username // "NOT SET"' cloud-env.json)"
-          echo "  ssh_bastion_agent_auth: $(jq -r '.ssh_bastion_agent_auth // "NOT SET"' cloud-env.json)"
+          echo "📋 SSH Proxy/Bastion configuration:"
+          echo "  ssh_proxy_host: $(jq -r '.ssh_proxy_host // "NOT SET"' cloud-env.json)"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "📋 Template source block (bastion config):"
-          sed -n '/^source "openstack" "builder"/,/^}/p' "$TEMPLATE" | grep -A 2 -B 2 "bastion"
+          echo "📋 Template source block (proxy/bastion config):"
+          sed -n '/^source "openstack" "builder"/,/^}/p' "$TEMPLATE" | grep -E "ssh_proxy|ssh_bastion" | head -10
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
           PACKER_CMD="packer build"
