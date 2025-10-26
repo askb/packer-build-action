@@ -198,27 +198,11 @@ source "openstack" "builder" {
 build {
   sources = ["source.docker.builder", "source.openstack.builder"]
 
+  # Simple baseline provisioner for examples
+  # For production builds, use the full common-packer provisioners
   provisioner "shell" {
     execute_command = "chmod +x {{ .Path }}; if [ \"$UID\" == \"0\" ]; then {{ .Vars }} '{{ .Path }}'; else {{ .Vars }} sudo -E '{{ .Path }}'; fi"
-    scripts         = ["common-packer/provision/install-python.sh"]
-  }
-
-  provisioner "shell-local" {
-    command = "./common-packer/ansible-galaxy.sh ${var.ansible_roles_path}"
-  }
-
-  provisioner "ansible" {
-    ansible_env_vars   = [
-        "ANSIBLE_NOCOWS=1",
-        "ANSIBLE_PIPELINING=False",
-        "ANSIBLE_HOST_KEY_CHECKING=False",
-        "ANSIBLE_ROLES_PATH=${var.ansible_roles_path}",
-        "ANSIBLE_CALLBACK_WHITELIST=profile_tasks",
-        "ANSIBLE_STDOUT_CALLBACK=debug"
-    ]
-    command            = "./common-packer/ansible-playbook.sh"
-    extra_arguments    = local.ssh_extra_args
-    playbook_file      = "provision/local-builder.yaml"
-    skip_version_check = true
+    scripts         = ["examples/provision/baseline.sh"]
+    only            = ["openstack.builder"]
   }
 }
