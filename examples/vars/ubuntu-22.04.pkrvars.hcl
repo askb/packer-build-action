@@ -3,6 +3,9 @@
 # Base image from OpenStack (source image to build from)
 base_image = "Ubuntu 22.04.5 LTS (x86_64) [2025-03-27]"
 
+# Docker source image (required by template even when only building OpenStack)
+docker_source_image = "ubuntu:22.04"
+
 # Image naming (output image name)
 image_name = "ubuntu-2204-builder-{{isotime \"2006-01-02-1504\"}}"
 
