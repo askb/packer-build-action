@@ -1,0 +1,101 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2025 The Linux Foundation
+
+name: Test Packer Build with Floating IP (No Bastion)
+
+# yamllint disable-line rule:truthy
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "action.yaml"
+      - "examples/**"
+      - ".github/workflows/test-build-floating-ip.yaml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "action.yaml"
+      - "examples/**"
+      - ".github/workflows/test-build-floating-ip.yaml"
+  workflow_dispatch:
+    inputs:
+      template:
+        description: "Packer template to build"
+        required: true
+        default: "templates/builder.pkr.hcl"
+      vars_file:
+        description: "Packer vars file"
+        required: true
+        default: "vars/ubuntu-22.04.pkrvars.hcl"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  integration-test-floating-ip:
+    name: Integration Test - Build with Floating IP
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout packer-build-action
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          path: action-repo
+
+      - name: Checkout test repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: lfit/releng-common-packer
+          ref: master
+          path: target-repo
+          submodules: recursive
+
+      - name: Build with Packer (Floating IP mode)
+        id: build
+        uses: ./action-repo
+        with:
+          mode: build
+          # NO bastion_ip - this forces use_floating_ip=true
+          packer_template: ${{ github.event.inputs.template || 'templates/builder.pkr.hcl' }}
+          packer_vars_file: ${{ github.event.inputs.vars_file || 'vars/ubuntu-22.04.pkrvars.hcl' }}
+          packer_working_dir: "."
+          path_prefix: "target-repo"
+          os_cloud: "openstack"
+          openstack_auth_url: ${{ secrets.OPENSTACK_AUTH_URL }}
+          openstack_project_id: ${{ secrets.OPENSTACK_PROJECT_ID }}
+          openstack_username: ${{ secrets.OPENSTACK_USERNAME }}
+          openstack_password: ${{ secrets.OPENSTACK_PASSWORD_B64 }}
+          openstack_network_id: ${{ secrets.OPENSTACK_NETWORK_ID }}
+          openstack_domain_name: ${{ secrets.OPENSTACK_DOMAIN_NAME }}
+          packer_version: "1.11.2"
+          python_version: "3.11"
+          ansible_version: "9.2.0"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Test Results - Floating IP Mode"
+            echo ""
+            echo "This test uses **floating IP** instead of bastion for SSH access."
+            echo "The instance gets a public IP address and GitHub runner connects directly."
+            echo ""
+            echo "**Build Status:** ${{ steps.build.outputs.build_status }}"
+            if [[ -n "${{ steps.build.outputs.image_name }}" ]]; then
+              echo "**Image Name:** ${{ steps.build.outputs.image_name }}"
+            fi
+            echo ""
+            if [[ "${{ steps.build.outputs.build_status }}" == "success" ]]; then
+              echo "✅ **Floating IP mode works!**"
+              echo ""
+              echo "If bastion mode fails but floating IP works, the issue is network routing:"
+              echo "- The Tailscale bastion cannot route to OpenStack's private network"
+              echo "- Solution: Provision bastion VM inside OpenStack or continue using floating IPs"
+            fi
+          } >> "${GITHUB_STEP_SUMMARY}"
