@@ -22,6 +22,13 @@ jobs:
     timeout-minutes: 45
 
     steps:
+      - name: Setup Tailscale on Runner
+        uses: tailscale/github-action@v2
+        with:
+          oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
+          tags: tag:ci
+
       - name: Setup bastion with enhanced logging
         id: bastion
         uses: askb/tailscale-openstack-bastion-action@main
