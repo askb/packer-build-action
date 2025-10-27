@@ -190,27 +190,49 @@ runs:
           fi
 
           # Create cloud-env.json using jq to properly escape special characters
-          # NOTE: Using ssh_proxy_host (legacy proxy method) which is proven to work
-          # with OpenStack. The newer ssh_bastion_* method may not be fully supported
-          # by the Packer OpenStack plugin.
-          jq -n \
-            --arg auth_url "${{ inputs.openstack_auth_url }}" \
-            --arg tenant "${{ inputs.openstack_project_id }}" \
-            --arg username "${{ inputs.openstack_username }}" \
-            --arg password "${DECODED_PASSWORD}" \
-            --arg region "${{ inputs.openstack_region }}" \
-            --arg network "${{ inputs.openstack_network_id }}" \
-            --arg ssh_proxy "${{ inputs.bastion_ip }}" \
-            '{
-              cloud_auth_url: $auth_url,
-              cloud_tenant: $tenant,
-              cloud_user: $username,
-              cloud_pass: $password,
-              cloud_region: $region,
-              cloud_network: $network,
-              cloud_user_data: "",
-              ssh_proxy_host: $ssh_proxy
-            }' > cloud-env.json
+          # Support both ssh_proxy_host (simple proxy) and ssh_bastion_* (Tailscale VPN)
+          # Template will use ssh_bastion_* if set, otherwise fall back to ssh_proxy_host
+          if [[ -n "${{ inputs.bastion_ip }}" ]]; then
+            # When bastion is configured, use ssh_bastion_* variables for Tailscale
+            jq -n \
+              --arg auth_url "${{ inputs.openstack_auth_url }}" \
+              --arg tenant "${{ inputs.openstack_project_id }}" \
+              --arg username "${{ inputs.openstack_username }}" \
+              --arg password "${DECODED_PASSWORD}" \
+              --arg region "${{ inputs.openstack_region }}" \
+              --arg network "${{ inputs.openstack_network_id }}" \
+              --arg bastion_ip "${{ inputs.bastion_ip }}" \
+              '{
+                cloud_auth_url: $auth_url,
+                cloud_tenant: $tenant,
+                cloud_user: $username,
+                cloud_pass: $password,
+                cloud_region: $region,
+                cloud_network: $network,
+                cloud_user_data: "",
+                ssh_bastion_host: $bastion_ip,
+                ssh_bastion_username: "root",
+                ssh_bastion_agent_auth: true
+              }' > cloud-env.json
+          else
+            # No bastion - direct connection (for testing or public IPs)
+            jq -n \
+              --arg auth_url "${{ inputs.openstack_auth_url }}" \
+              --arg tenant "${{ inputs.openstack_project_id }}" \
+              --arg username "${{ inputs.openstack_username }}" \
+              --arg password "${DECODED_PASSWORD}" \
+              --arg region "${{ inputs.openstack_region }}" \
+              --arg network "${{ inputs.openstack_network_id }}" \
+              '{
+                cloud_auth_url: $auth_url,
+                cloud_tenant: $tenant,
+                cloud_user: $username,
+                cloud_pass: $password,
+                cloud_region: $region,
+                cloud_network: $network,
+                cloud_user_data: ""
+              }' > cloud-env.json
+          fi
 
           echo "✅ Created cloud-env.json configuration"
         fi
@@ -331,9 +353,12 @@ runs:
           echo ""
           echo "📋 SSH Proxy/Bastion configuration:"
           echo "  ssh_proxy_host: $(jq -r '.ssh_proxy_host // "NOT SET"' cloud-env.json)"
+          echo "  ssh_bastion_host: $(jq -r '.ssh_bastion_host // "NOT SET"' cloud-env.json)"
+          echo "  ssh_bastion_username: $(jq -r '.ssh_bastion_username // "NOT SET"' cloud-env.json)"
+          echo "  ssh_bastion_agent_auth: $(jq -r '.ssh_bastion_agent_auth // "NOT SET"' cloud-env.json)"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "📋 Template source block (proxy/bastion config):"
-          sed -n '/^source "openstack" "builder"/,/^}/p' "$TEMPLATE" | grep -E "ssh_proxy|ssh_bastion" | head -10
+          sed -n '/^source "openstack" "builder"/,/^}/p' "$TEMPLATE" | grep -E "ssh_proxy|ssh_bastion|use_bastion|use_proxy" | head -15
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
           PACKER_CMD="packer build"

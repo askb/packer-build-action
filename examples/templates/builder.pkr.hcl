@@ -158,6 +158,11 @@ locals {
   ] : [
     "--ssh-extra-args", "-o IdentitiesOnly=yes -o HostKeyAlgorithms=+ssh-rsa"
   ]
+  
+  # Conditional SSH proxy/bastion configuration
+  # Use bastion if explicitly configured, otherwise fall back to proxy
+  use_bastion = var.ssh_bastion_host != ""
+  use_proxy   = var.ssh_proxy_host != "" && !local.use_bastion
 }
 
 source "docker" "builder" {
@@ -178,16 +183,17 @@ source "openstack" "builder" {
   region                  = "${var.cloud_region}"
   source_image_name       = "${var.base_image}"
 
-  # Legacy proxy support (kept for backwards compatibility)
-  ssh_proxy_host          = "${var.ssh_proxy_host}"
-
-  # Bastion/Jump host support
-  ssh_bastion_host              = var.ssh_bastion_host != "" ? var.ssh_bastion_host : null
-  ssh_bastion_username          = var.ssh_bastion_username != "" ? var.ssh_bastion_username : null
-  ssh_bastion_port              = var.ssh_bastion_port
-  ssh_bastion_agent_auth        = var.ssh_bastion_agent_auth
-  ssh_bastion_private_key_file  = var.ssh_bastion_private_key_file != "" ? var.ssh_bastion_private_key_file : null
-  ssh_bastion_password          = var.ssh_bastion_password != "" ? var.ssh_bastion_password : null
+  # Conditional SSH proxy/bastion configuration
+  # Use proxy if bastion not set (for simple setups)
+  ssh_proxy_host = local.use_proxy ? var.ssh_proxy_host : null
+  
+  # Use bastion if explicitly configured (for Tailscale VPN setups)
+  ssh_bastion_host              = local.use_bastion ? var.ssh_bastion_host : null
+  ssh_bastion_username          = local.use_bastion ? var.ssh_bastion_username : null
+  ssh_bastion_port              = local.use_bastion ? var.ssh_bastion_port : null
+  ssh_bastion_agent_auth        = local.use_bastion ? var.ssh_bastion_agent_auth : null
+  ssh_bastion_private_key_file  = local.use_bastion && var.ssh_bastion_private_key_file != "" ? var.ssh_bastion_private_key_file : null
+  ssh_bastion_password          = local.use_bastion && var.ssh_bastion_password != "" ? var.ssh_bastion_password : null
 
   ssh_username            = "${var.ssh_user}"
   use_blockstorage_volume = "${var.vm_use_block_storage}"
