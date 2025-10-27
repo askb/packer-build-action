@@ -64,6 +64,13 @@ jobs:
           echo "Checking for bastion in template:"
           grep -c "ssh_bastion" templates/builder.pkr.hcl || echo "NO BASTION CONFIG FOUND!"
 
+      - name: Setup Tailscale on Runner
+        uses: tailscale/github-action@v2
+        with:
+          oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
+          tags: tag:ci
+
       - name: Setup bastion
         id: bastion
         uses: askb/tailscale-openstack-bastion-action@main
