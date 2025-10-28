@@ -86,7 +86,6 @@ jobs:
         with:
           operation: setup
           tailscale_auth_key: ${{ secrets.TAILSCALE_AUTH_KEY }}
-          tailscale_tags: "tag:bastion"
           openstack_auth_url: ${{ secrets.OPENSTACK_AUTH_URL }}
           openstack_project_id: ${{ secrets.OPENSTACK_PROJECT_ID }}
           openstack_username: ${{ secrets.OPENSTACK_USERNAME }}
