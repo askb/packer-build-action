@@ -1,214 +1,252 @@
 packer {
+  required_version = ">= 1.9.0"
   required_plugins {
     openstack = {
-      version = ">= 1.0.0"
+      version = ">= 1.1.2"
       source  = "github.com/hashicorp/openstack"
     }
   }
 }
 
-variable "ansible_roles_path" {
-  type    = string
-  default = ".galaxy"
-}
-
-variable "local_build" {
-  type        = bool
-  default     = false
-  description = "Set to true for local builds to enable SSH compatibility options"
-}
-
-variable "arch" {
-  type    = string
-  default = "x86_64"
-}
-
-variable "base_image" {
-  type = string
-}
+# ========================================
+# Cloud Provider Variables
+# ========================================
 
 variable "cloud_auth_url" {
-  type    = string
-  default = null
+  type        = string
+  default     = env("OS_AUTH_URL")
+  description = "OpenStack authentication URL"
 }
 
-variable "cloud_tenant" {
-  type    = string
-  default = null
+variable "cloud_tenant_name" {
+  type        = string
+  default     = env("OS_PROJECT_NAME")
+  description = "OpenStack project/tenant name"
 }
 
-variable "cloud_user" {
-  type    = string
-  default = null
+variable "cloud_username" {
+  type        = string
+  default     = env("OS_USERNAME")
+  description = "OpenStack username"
 }
 
-variable "cloud_pass" {
-  type    = string
-  default = null
-}
-
-variable "cloud_network" {
-  type = string
+variable "cloud_password" {
+  type        = string
+  default     = env("OS_PASSWORD")
+  sensitive   = true
+  description = "OpenStack password"
 }
 
 variable "cloud_region" {
-  type    = string
-  default = "ca-ymq-1"
+  type        = string
+  default     = "ca-ymq-1"
+  description = "OpenStack region"
 }
 
-variable "cloud_user_data" {
-  type = string
+variable "cloud_network" {
+  type        = string
+  default     = "default"
+  description = "Network name for the instance"
 }
 
-variable "distro" {
-  type = string
+variable "cloud_domain_name" {
+  type        = string
+  default     = env("OS_USER_DOMAIN_NAME")
+  description = "OpenStack domain name (required for v3 API)"
 }
 
-variable "docker_source_image" {
-  type = string
+# ========================================
+# Image Configuration Variables
+# ========================================
+
+variable "base_image" {
+  type        = string
+  default     = "Ubuntu 22.04"
+  description = "Base image to use for building"
+}
+
+variable "image_name" {
+  type        = string
+  default     = "builder-{{isotime \"2006-01-02-1504\"}}"
+  description = "Name for the output image"
 }
 
 variable "flavor" {
-  type    = string
-  default = "v3-standard-2"
-}
-
-variable "source_ami_filter_name" {
-  type    = string
-  default = null
-}
-
-variable "source_ami_filter_product_code" {
-  type    = string
-  default = null
-}
-
-variable "source_ami_filter_owner" {
-  type    = string
-  default = null
-}
-
-variable "ssh_proxy_host" {
-  type    = string
-  default = ""
-}
-
-variable "ssh_bastion_host" {
   type        = string
-  default     = ""
-  description = "Bastion/jump host for SSH access to OpenStack instances"
-}
-
-variable "ssh_bastion_username" {
-  type        = string
-  default     = ""
-  description = "Username for bastion host authentication"
-}
-
-variable "ssh_bastion_port" {
-  type        = number
-  default     = 22
-  description = "SSH port on bastion host"
-}
-
-variable "ssh_bastion_agent_auth" {
-  type        = bool
-  default     = true
-  description = "Use SSH agent for bastion authentication"
-}
-
-variable "ssh_bastion_private_key_file" {
-  type        = string
-  default     = ""
-  description = "Path to SSH private key file for bastion authentication"
-}
-
-variable "ssh_bastion_password" {
-  type        = string
-  default     = ""
-  sensitive   = true
-  description = "Password for bastion host authentication (not recommended)"
+  default     = "v3-standard-2"
+  description = "OpenStack flavor for build instance"
 }
 
 variable "ssh_user" {
-  type = string
+  type        = string
+  default     = "ubuntu"
+  description = "SSH user for connecting to instance"
 }
 
-variable "vm_image_disk_format" {
-  type    = string
-  default = ""
+variable "distro" {
+  type        = string
+  default     = "ubuntu2204"
+  description = "Distribution identifier"
 }
 
-variable "vm_use_block_storage" {
-  type    = string
-  default = "true"
+# ========================================
+# Bastion Host Variables
+# ========================================
+
+variable "bastion_host" {
+  type        = string
+  default     = ""
+  description = "Bastion host IP address (from Tailscale). Leave empty for direct connection."
 }
 
-variable "vm_volume_size" {
-  type    = string
-  default = "20"
+variable "bastion_user" {
+  type        = string
+  default     = "root"
+  description = "SSH user for bastion host"
 }
 
-locals {
-  # SSH arguments for local builds only
-  ssh_extra_args = var.local_build ? [
-    "--scp-extra-args", "'-O'",
-    "--ssh-extra-args",
-    "-o IdentitiesOnly=yes -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa"
-  ] : [
-    "--ssh-extra-args", "-o IdentitiesOnly=yes -o HostKeyAlgorithms=+ssh-rsa"
-  ]
-  
-  # Conditional SSH proxy/bastion configuration
-  # Use bastion if explicitly configured, otherwise fall back to proxy
-  use_bastion = var.ssh_bastion_host != ""
-  use_proxy   = var.ssh_proxy_host != "" && !local.use_bastion
+variable "bastion_port" {
+  type        = number
+  default     = 22
+  description = "SSH port for bastion host"
 }
 
-source "docker" "builder" {
-  changes = ["ENTRYPOINT [\"\"]", "CMD [\"\"]"]
-  commit  = true
-  image   = "${var.docker_source_image}"
+# ========================================
+# Build Configuration Variables
+# ========================================
+
+variable "ssh_timeout" {
+  type        = string
+  default     = "30m"
+  description = "Timeout for SSH connection"
 }
+
+variable "ssh_handshake_attempts" {
+  type        = number
+  default     = 20
+  description = "Number of SSH handshake attempts"
+}
+
+variable "build_timeout" {
+  type        = string
+  default     = "60m"
+  description = "Maximum time for build to complete"
+}
+
+variable "ansible_roles_path" {
+  type        = string
+  default     = ".galaxy"
+  description = "Path for Ansible roles"
+}
+
+# ========================================
+# OpenStack Source Configuration
+# ========================================
 
 source "openstack" "builder" {
-  flavor            = "${var.flavor}"
-  image_disk_format = "${var.vm_image_disk_format}"
-  image_name        = "ZZCI - ${var.distro} - builder - ${var.arch} - ${legacy_isotime("20060102-150405.000")}"
-  instance_name     = "${var.distro}-builder-${uuidv4()}"
+  # Authentication
+  identity_endpoint = var.cloud_auth_url
+  tenant_name       = var.cloud_tenant_name
+  domain_name       = var.cloud_domain_name
+  username          = var.cloud_username
+  password          = var.cloud_password
+  region            = var.cloud_region
+
+  # Image configuration
+  image_name        = var.image_name
+  source_image_name = var.base_image
+  flavor            = var.flavor
+
+  # Network
+  networks = [var.cloud_network]
+
+  # SSH configuration
+  ssh_username = var.ssh_user
+  ssh_timeout  = var.ssh_timeout
+
+  # Bastion configuration (conditional)
+  # Note: Using Tailscale SSH - requires agent auth to be enabled
+  # Even though Tailscale doesn't use the agent, Packer requires one auth method.
+  # The SSH agent will be started (potentially empty) to satisfy this requirement.
+  # Tailscale handles the actual authentication when the connection is made.
+  ssh_bastion_host              = var.bastion_host != "" ? var.bastion_host : null
+  ssh_bastion_username          = var.bastion_host != "" ? var.bastion_user : null
+  ssh_bastion_port              = var.bastion_host != "" ? var.bastion_port : null
+  ssh_bastion_agent_auth        = var.bastion_host != "" ? true : null
+
+  # Connection settings
+  communicator                  = "ssh"
+  ssh_handshake_attempts        = var.ssh_handshake_attempts
+  ssh_pty                       = true
+
+  # Metadata
   metadata = {
-    ci_managed = "yes"
+    build_date  = "{{isotime \"2006-01-02\"}}"
+    build_tool  = "packer"
+    distro      = var.distro
+    packer_version = "{{packer_version}}"
   }
-  networks                = ["${var.cloud_network}"]
-  region                  = "${var.cloud_region}"
-  source_image_name       = "${var.base_image}"
 
-  # Conditional SSH proxy/bastion configuration
-  # Use proxy if bastion not set (for simple setups)
-  ssh_proxy_host = local.use_proxy ? var.ssh_proxy_host : null
-  
-  # Use bastion if explicitly configured (for Tailscale VPN setups)
-  ssh_bastion_host              = local.use_bastion ? var.ssh_bastion_host : null
-  ssh_bastion_username          = local.use_bastion ? var.ssh_bastion_username : null
-  ssh_bastion_port              = local.use_bastion ? var.ssh_bastion_port : null
-  ssh_bastion_agent_auth        = local.use_bastion ? var.ssh_bastion_agent_auth : null
-  ssh_bastion_private_key_file  = local.use_bastion && var.ssh_bastion_private_key_file != "" ? var.ssh_bastion_private_key_file : null
-  ssh_bastion_password          = local.use_bastion && var.ssh_bastion_password != "" ? var.ssh_bastion_password : null
+  # Image visibility
+  image_visibility = "private"
 
-  ssh_username            = "${var.ssh_user}"
-  use_blockstorage_volume = "${var.vm_use_block_storage}"
-  user_data_file          = "${var.cloud_user_data}"
-  volume_size             = "${var.vm_volume_size}"
+  # Floating IP (not needed with bastion)
+  use_floating_ip = var.bastion_host != "" ? false : true
 }
 
-build {
-  sources = ["source.docker.builder", "source.openstack.builder"]
+# ========================================
+# Build Definition
+# ========================================
 
-  # Simple baseline provisioner for examples
-  # For production builds, use the full common-packer provisioners
+build {
+  name    = "builder-${var.distro}"
+  sources = ["source.openstack.builder"]
+
+  # Wait for cloud-init to complete
   provisioner "shell" {
-    execute_command = "chmod +x {{ .Path }}; if [ \"$UID\" == \"0\" ]; then {{ .Vars }} '{{ .Path }}'; else {{ .Vars }} sudo -E '{{ .Path }}'; fi"
-    scripts         = ["examples/provision/baseline.sh"]
-    only            = ["openstack.builder"]
+    inline = [
+      "echo 'Waiting for cloud-init to complete...'",
+      "cloud-init status --wait || true",
+      "echo 'Cloud-init completed'"
+    ]
   }
+
+  # Update system
+  provisioner "shell" {
+    inline = [
+      "echo 'Updating system packages...'",
+      "sudo apt-get update",
+      "sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -y",
+      "echo 'System updated'"
+    ]
+  }
+
+  # Run baseline provisioning
+  provisioner "shell" {
+    script = "${path.cwd}/provision/baseline.sh"
+    environment_vars = [
+      "DISTRO=${var.distro}"
+    ]
+  }
+
+  # Cleanup before image creation
+  provisioner "shell" {
+    inline = [
+      "echo 'Cleaning up before image creation...'",
+      "sudo apt-get autoremove -y",
+      "sudo apt-get autoclean -y",
+      "sudo cloud-init clean --logs --seed",
+      "sudo rm -rf /var/lib/cloud/instances/*",
+      "sudo rm -f /etc/machine-id",
+      "sudo touch /etc/machine-id",
+      "sudo rm -f ~/.bash_history || true",
+      "sudo rm -f /root/.bash_history || true",
+      "echo 'Cleanup completed'"
+    ]
+  }
+
+  # Post-processors can be added here
+  # post-processor "manifest" {
+  #   output = "manifest.json"
+  # }
 }
