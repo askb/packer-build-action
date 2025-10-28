@@ -181,11 +181,11 @@ jobs:
           echo ""
 
           # Set outputs
-          {
-            echo "ping_ok=$PING_OK"
-            echo "ssh_ok=$SSH_OK"
-            echo "bastion_ip=$BASTION_IP"
-          } >> "$GITHUB_OUTPUT"
+          cat >> "$GITHUB_OUTPUT" << EOF
+          ping_ok=$PING_OK
+          ssh_ok=$SSH_OK
+          bastion_ip=$BASTION_IP
+          EOF
 
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
