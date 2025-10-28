@@ -50,7 +50,7 @@ repos:
     rev: 192ad822316c3a22fb3d3cc8aa6eafa0b8488360  # frozen: v0.45.0
     hooks:
       - id: markdownlint
-        args: ["--fix"]
+        args: ["--fix", "--config", ".markdownlintrc"]
 
   - repo: https://github.com/fsfe/reuse-tool
     rev: 9245cd26448e246cda84f70711cc9d5f970855d6  # frozen: v6.1.2

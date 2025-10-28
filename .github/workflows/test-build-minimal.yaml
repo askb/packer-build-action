@@ -47,6 +47,7 @@ concurrency:
 jobs:
   prepare:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       has-changes: ${{ steps.check.outputs.has-changes }}
     steps:
@@ -68,6 +69,7 @@ jobs:
   test-packer-build:
     needs: prepare
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     if: |
       needs.prepare.outputs.has-changes == 'true' ||
       github.event_name == 'workflow_dispatch'
@@ -136,6 +138,7 @@ jobs:
     if: always()
     needs: [prepare, test-packer-build]
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Build summary
         run: |

@@ -58,6 +58,7 @@ concurrency:
 jobs:
   prepare:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       has-changes: ${{ steps.check.outputs.has-changes }}
     steps:
@@ -150,6 +151,7 @@ jobs:
     if: always()
     needs: [prepare, test-packer-build]
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Build summary
         run: |

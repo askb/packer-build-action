@@ -21,6 +21,7 @@ jobs:
   test-validate:
     name: Test Validation Mode
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout packer-build-action

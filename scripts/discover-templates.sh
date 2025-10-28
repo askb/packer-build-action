@@ -44,12 +44,16 @@ if [[ -n "$VAR_FILES" ]]; then
 fi
 
 # Export for use in action
-echo "PACKER_TEMPLATES<<EOF" >> "$GITHUB_OUTPUT"
-echo "$TEMPLATES" >> "$GITHUB_OUTPUT"
-echo "EOF" >> "$GITHUB_OUTPUT"
+{
+    echo "PACKER_TEMPLATES<<EOF"
+    echo "$TEMPLATES"
+    echo "EOF"
+} >> "$GITHUB_OUTPUT"
 
 if [[ -n "$VAR_FILES" ]]; then
-    echo "PACKER_VAR_FILES<<EOF" >> "$GITHUB_OUTPUT"
-    echo "$VAR_FILES" >> "$GITHUB_OUTPUT"
-    echo "EOF" >> "$GITHUB_OUTPUT"
+    {
+        echo "PACKER_VAR_FILES<<EOF"
+        echo "$VAR_FILES"
+        echo "EOF"
+    } >> "$GITHUB_OUTPUT"
 fi
