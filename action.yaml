@@ -123,6 +123,11 @@ runs:
     - name: Validate inputs and install dependencies
       shell: bash
       run: |
+        if [[ "${{ inputs.mode }}" == "build" && -z "${{ inputs.bastion_ip }}" ]]; then
+          echo "❌ Error: bastion_ip is required for build mode"
+          exit 1
+        fi
+
         # Install jq if not available (needed for cloud-env.json generation)
         if ! command -v jq &> /dev/null; then
           echo "📦 Installing jq..."
@@ -131,13 +136,6 @@ runs:
         fi
 
         echo "✅ Input validation passed"
-        
-        # Info about bastion mode
-        if [[ -n "${{ inputs.bastion_ip }}" ]]; then
-          echo "ℹ️  Bastion mode enabled - will connect via ${{ inputs.bastion_ip }}"
-        else
-          echo "ℹ️  Direct connection mode - using floating IP"
-        fi
 
     - name: Setup Python
       uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
@@ -190,49 +188,25 @@ runs:
           fi
 
           # Create cloud-env.json using jq to properly escape special characters
-          # Support both ssh_proxy_host (simple proxy) and ssh_bastion_* (Tailscale VPN)
-          # Template will use ssh_bastion_* if set, otherwise fall back to ssh_proxy_host
-          if [[ -n "${{ inputs.bastion_ip }}" ]]; then
-            # When bastion is configured, use ssh_bastion_* variables for Tailscale
-            jq -n \
-              --arg auth_url "${{ inputs.openstack_auth_url }}" \
-              --arg tenant "${{ inputs.openstack_project_id }}" \
-              --arg username "${{ inputs.openstack_username }}" \
-              --arg password "${DECODED_PASSWORD}" \
-              --arg region "${{ inputs.openstack_region }}" \
-              --arg network "${{ inputs.openstack_network_id }}" \
-              --arg bastion_ip "${{ inputs.bastion_ip }}" \
-              '{
-                cloud_auth_url: $auth_url,
-                cloud_tenant: $tenant,
-                cloud_user: $username,
-                cloud_pass: $password,
-                cloud_region: $region,
-                cloud_network: $network,
-                cloud_user_data: "",
-                ssh_bastion_host: $bastion_ip,
-                ssh_bastion_username: "root",
-                ssh_bastion_agent_auth: true
-              }' > cloud-env.json
-          else
-            # No bastion - direct connection (for testing or public IPs)
-            jq -n \
-              --arg auth_url "${{ inputs.openstack_auth_url }}" \
-              --arg tenant "${{ inputs.openstack_project_id }}" \
-              --arg username "${{ inputs.openstack_username }}" \
-              --arg password "${DECODED_PASSWORD}" \
-              --arg region "${{ inputs.openstack_region }}" \
-              --arg network "${{ inputs.openstack_network_id }}" \
-              '{
-                cloud_auth_url: $auth_url,
-                cloud_tenant: $tenant,
-                cloud_user: $username,
-                cloud_pass: $password,
-                cloud_region: $region,
-                cloud_network: $network,
-                cloud_user_data: ""
-              }' > cloud-env.json
-          fi
+          jq -n \
+            --arg auth_url "${{ inputs.openstack_auth_url }}" \
+            --arg tenant "${{ inputs.openstack_project_id }}" \
+            --arg domain "${{ inputs.openstack_domain_name }}" \
+            --arg username "${{ inputs.openstack_username }}" \
+            --arg password "${DECODED_PASSWORD}" \
+            --arg region "${{ inputs.openstack_region }}" \
+            --arg network "${{ inputs.openstack_network_id }}" \
+            --arg ssh_proxy "${{ inputs.bastion_ip }}" \
+            '{
+              cloud_auth_url: $auth_url,
+              cloud_tenant_name: $tenant,
+              cloud_domain_name: $domain,
+              cloud_username: $username,
+              cloud_password: $password,
+              cloud_region: $region,
+              cloud_network: $network,
+              ssh_proxy_host: $ssh_proxy
+            }' > cloud-env.json
 
           echo "✅ Created cloud-env.json configuration"
         fi
@@ -285,12 +259,6 @@ runs:
           done
         fi
 
-        # Install commonly used plugins that may not be declared in required_plugins
-        # This works around upstream templates that reference plugins without declaring them
-        echo "📦 Installing additional common plugins..."
-        packer plugins install github.com/hashicorp/docker || echo "ℹ️  Docker plugin already installed or not needed"
-        packer plugins install github.com/hashicorp/ansible || echo "ℹ️  Ansible plugin already installed or not needed"
-
     - name: Execute Packer operation
       id: execute
       shell: bash
@@ -298,10 +266,6 @@ runs:
       env:
         OS_CLOUD: ${{ inputs.os_cloud }}
       run: |
-        # Enable Packer debug logging to troubleshoot bastion issues
-        export PACKER_LOG=1
-        export PACKER_LOG_PATH="/tmp/packer-debug.log"
-        
         # Start SSH agent for Packer (required even for Tailscale SSH)
         # Packer requires ssh_bastion_agent_auth to be true, so we need an agent running
         # Tailscale SSH will handle actual authentication, agent can be empty
@@ -316,15 +280,6 @@ runs:
         MODE="${{ inputs.mode }}"
         TEMPLATE="${{ inputs.packer_template }}"
         VARS_FILE="${{ inputs.packer_vars_file }}"
-
-        # Debug: Show current directory and file locations
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "📂 Current working directory: $(pwd)"
-        echo "📂 TEMPLATE path: $TEMPLATE"
-        echo "📂 VARS_FILE path: $VARS_FILE"
-        echo "📂 Files in current directory:"
-        ls -la | head -20
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
         # Ensure provision directory is accessible
         # Check if provision exists in examples and symlink to current dir
@@ -345,39 +300,18 @@ runs:
             echo "❌ Error: packer_template and packer_vars_file required for build mode"
             exit 1
           fi
-          
-          # Debug: Show cloud-env.json content (with password redacted)
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "📋 cloud-env.json content (for debugging):"
-          jq 'del(.cloud_pass)' cloud-env.json || cat cloud-env.json
-          echo ""
-          echo "📋 SSH Proxy/Bastion configuration:"
-          echo "  ssh_proxy_host: $(jq -r '.ssh_proxy_host // "NOT SET"' cloud-env.json)"
-          echo "  ssh_bastion_host: $(jq -r '.ssh_bastion_host // "NOT SET"' cloud-env.json)"
-          echo "  ssh_bastion_username: $(jq -r '.ssh_bastion_username // "NOT SET"' cloud-env.json)"
-          echo "  ssh_bastion_agent_auth: $(jq -r '.ssh_bastion_agent_auth // "NOT SET"' cloud-env.json)"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "📋 Template source block (proxy/bastion config):"
-          sed -n '/^source "openstack" "builder"/,/^}/p' "$TEMPLATE" | grep -E "ssh_proxy|ssh_bastion|use_bastion|use_proxy" | head -15
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
           PACKER_CMD="packer build"
-          PACKER_CMD="$PACKER_CMD -only='openstack.builder'"
           PACKER_CMD="$PACKER_CMD -var-file=cloud-env.json"
           PACKER_CMD="$PACKER_CMD -var-file=$VARS_FILE"
+          if [[ -n "${{ inputs.bastion_ip }}" ]]; then
+            PACKER_CMD="$PACKER_CMD -var bastion_host=${{ inputs.bastion_ip }}"
+            PACKER_CMD="$PACKER_CMD -var bastion_user=${{ inputs.bastion_ssh_user }}"
+          fi
           PACKER_CMD="$PACKER_CMD $TEMPLATE"
 
           echo "Executing: $PACKER_CMD"
           eval $PACKER_CMD
-          
-          # Show relevant parts of debug log if build fails
-          if [ $? -ne 0 ] && [ -f "/tmp/packer-debug.log" ]; then
-            echo ""
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "📋 Packer Debug Log (bastion-related lines):"
-            grep -i "bastion\|ssh.*connect" /tmp/packer-debug.log | tail -50 || echo "No bastion mentions in debug log"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          fi
 
           echo "build_status=success" >> $GITHUB_OUTPUT
           echo "image_name=Built successfully" >> $GITHUB_OUTPUT

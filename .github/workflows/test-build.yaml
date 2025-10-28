@@ -52,17 +52,8 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           repository: lfit/releng-common-packer
-          ref: master  # Ensure we get latest with bastion support (v0.17.0+)
           path: target-repo
           submodules: recursive
-      
-      - name: Verify checked out commit
-        run: |
-          cd target-repo
-          echo "Checked out commit:"
-          git log -1 --oneline
-          echo "Checking for bastion in template:"
-          grep -c "ssh_bastion" templates/builder.pkr.hcl || echo "NO BASTION CONFIG FOUND!"
 
       - name: Setup bastion
         id: bastion
@@ -81,97 +72,7 @@ jobs:
           bastion_flavor: "v3-standard-2"
           bastion_image: "Ubuntu 22.04.5 LTS (x86_64) [2025-03-27]"
           bastion_network: "odlci"
-          bastion_wait_timeout: "600"
-
-      - name: Test Network Connectivity through Bastion
-        id: network-test
-        continue-on-error: true
-        run: |
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "🔍 Testing network connectivity through bastion"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          
-          BASTION_IP="${{ steps.bastion.outputs.bastion_ip }}"
-          
-          # Test 1: Can we SSH to bastion?
-          echo ""
-          echo "Test 1: SSH to bastion ($BASTION_IP)"
-          if timeout 10 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-              root@"$BASTION_IP" "echo 'Bastion SSH: OK'" 2>/dev/null; then
-            echo "✅ Can SSH to bastion"
-            BASTION_SSH_OK=true
-          else
-            echo "❌ Cannot SSH to bastion"
-            BASTION_SSH_OK=false
-          fi
-          
-          # Test 2: Create a test instance and try to reach it
-          echo ""
-          echo "Test 2: Creating test OpenStack instance to check routing"
-          
-          # Decode password
-          DECODED_PASSWORD=$(echo "${{ secrets.OPENSTACK_PASSWORD_B64 }}" | base64 -d)
-          
-          # Create a minimal test instance
-          export OS_AUTH_URL="${{ secrets.OPENSTACK_AUTH_URL }}"
-          export OS_PROJECT_ID="${{ secrets.OPENSTACK_PROJECT_ID }}"
-          export OS_USERNAME="${{ secrets.OPENSTACK_USERNAME }}"
-          export OS_PASSWORD="$DECODED_PASSWORD"
-          export OS_REGION_NAME="${{ secrets.OPENSTACK_REGION }}"
-          export OS_IDENTITY_API_VERSION=3
-          
-          # Install OpenStack client if not present
-          pip3 install python-openstackclient 2>&1 | grep -v "Requirement already satisfied" || true
-          
-          # Get network ID
-          NETWORK_ID="${{ secrets.OPENSTACK_NETWORK_ID }}"
-          
-          # Create test instance
-          TEST_INSTANCE="network-test-${{ github.run_id }}"
-          echo "Creating test instance: $TEST_INSTANCE"
-          
-          openstack server create \
-            --flavor "v3-standard-2" \
-            --image "Ubuntu 22.04.5 LTS (x86_64) [2025-03-27]" \
-            --network "$NETWORK_ID" \
-            --wait \
-            "$TEST_INSTANCE" || echo "Failed to create test instance"
-          
-          # Get instance IP
-          TEST_IP=$(openstack server show "$TEST_INSTANCE" -f value -c addresses | grep -oP '[\d.]+$' || echo "")
-          
-          if [[ -n "$TEST_IP" ]]; then
-            echo "Test instance IP: $TEST_IP"
-            
-            # Test 3: Can bastion ping the instance?
-            echo ""
-            echo "Test 3: Can bastion reach test instance ($TEST_IP)?"
-            if $BASTION_SSH_OK; then
-              if timeout 10 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-                  root@"$BASTION_IP" "ping -c 3 $TEST_IP" 2>/dev/null; then
-                echo "✅ Bastion CAN reach OpenStack private network!"
-                echo "network_routing=ok" >> "$GITHUB_OUTPUT"
-              else
-                echo "❌ Bastion CANNOT reach OpenStack private network"
-                echo "This is likely why Packer hangs - bastion has no route to 10.30.170.0/24"
-                echo "network_routing=failed" >> "$GITHUB_OUTPUT"
-              fi
-            else
-              echo "⚠️  Skipping (cannot SSH to bastion)"
-              echo "network_routing=unknown" >> "$GITHUB_OUTPUT"
-            fi
-            
-            # Cleanup test instance
-            echo ""
-            echo "Cleaning up test instance..."
-            openstack server delete --wait "$TEST_INSTANCE" || echo "Failed to delete test instance"
-          else
-            echo "⚠️  Could not get test instance IP"
-            echo "network_routing=unknown" >> "$GITHUB_OUTPUT"
-          fi
-          
-          echo ""
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          bastion_wait_timeout: "300"
 
       - name: Build with Packer
         id: build
@@ -180,8 +81,8 @@ jobs:
           mode: build
           bastion_ip: ${{ steps.bastion.outputs.bastion_ip }}
           bastion_ssh_user: "root"
-          packer_template: ${{ github.event.inputs.template || 'templates/builder.pkr.hcl' }}
-          packer_vars_file: ${{ github.event.inputs.vars_file || 'vars/ubuntu-22.04.pkrvars.hcl' }}
+          packer_template: ${{ github.event.inputs.template }}
+          packer_vars_file: ${{ github.event.inputs.vars_file }}
           packer_working_dir: "."
           path_prefix: "target-repo"
           os_cloud: "openstack"
@@ -212,25 +113,9 @@ jobs:
         run: |
           {
             echo "## Test Results"
-            echo ""
-            echo "### Network Connectivity"
-            echo "**Network Routing:** ${{ steps.network-test.outputs.network_routing || 'not tested' }}"
-            echo ""
-            echo "### Build Results"
             echo "**Bastion IP:** ${{ steps.bastion.outputs.bastion_ip }}"
             echo "**Build Status:** ${{ steps.build.outputs.build_status }}"
             if [[ -n "${{ steps.build.outputs.image_name }}" ]]; then
               echo "**Image Name:** ${{ steps.build.outputs.image_name }}"
-            fi
-            echo ""
-            if [[ "${{ steps.network-test.outputs.network_routing }}" == "failed" ]]; then
-              echo "### ⚠️ Network Issue Detected"
-              echo "The bastion cannot route to the OpenStack private network (10.30.170.0/24)."
-              echo "This explains why Packer hangs waiting for SSH."
-              echo ""
-              echo "**Solutions:**"
-              echo "1. Provision bastion VM inside OpenStack network with proper routing"
-              echo "2. Use floating IPs instead of bastion (set bastion_ip to empty)"
-              echo "3. Configure VPN/network overlay that provides proper routing"
             fi
           } >> "${GITHUB_STEP_SUMMARY}"
