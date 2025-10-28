@@ -71,7 +71,8 @@ jobs:
     if: |
       (needs.prepare.outputs.has-changes == 'true' ||
       github.event_name == 'workflow_dispatch') &&
-      github.event.pull_request.head.repo.full_name == github.repository
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
