@@ -319,9 +319,42 @@ The two supported authentication methods (OAuth Ephemeral and Legacy Auth Key) r
 
 - [tailscale-openstack-bastion-action](https://github.com/askb/tailscale-openstack-bastion-action) - Bastion host management with Tailscale
 
+## Contributing
+
+We welcome contributions! Please follow these guidelines:
+
+1. **Fork the repository**
+2. **Create a feature branch:** `git checkout -b feature/amazing-feature`
+3. **Commit your changes with DCO sign-off:** `git commit -s`
+4. **Push to the branch:** `git push origin feature/amazing-feature`
+5. **Open a Pull Request**
+
+### Commit Message Format
+
+Follow [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+<type>: <description>
+
+[optional body]
+
+Signed-off-by: Your Name <your.email@example.com>
+```
+
+**Types:** Feat, Fix, Chore, Docs, Style, Refactor, Perf, Test, CI, Build
+
+### Code Quality
+
+- Run `pre-commit run --all-files` before committing
+- Ensure all tests pass
+- Follow existing code style
+- Add tests for new features
+
 ## License
 
 Apache License 2.0 - see [LICENSE](LICENSE) for details.
+
+Copyright © 2025 The Linux Foundation
 
 ## Support
 

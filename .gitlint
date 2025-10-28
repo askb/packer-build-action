@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2025 The Linux Foundation
+
+[general]
+contrib=contrib-title-conventional-commits,contrib-body-requires-signed-off-by
+
+[contrib-title-conventional-commits]
+types=Fix,Feat,Chore,Docs,Style,Refactor,Perf,Test,Revert,CI,Build
+
+[ignore-body-lines]
+regex=(.*)https?://(.*)

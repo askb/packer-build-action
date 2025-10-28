@@ -2,9 +2,13 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: 2025 The Linux Foundation
 
-name: "Packer Build Action"
+name: "🔨 Packer Build Action"
 description: "Execute Packer validate or build operations via a bastion host"
 author: "The Linux Foundation"
+
+branding:
+  icon: 'package'
+  color: 'blue'
 
 inputs:
   # Operation Mode
@@ -319,7 +323,3 @@ runs:
           echo "❌ Error: Invalid mode '$MODE'"
           exit 1
         fi
-
-branding:
-  icon: "package"
-  color: "blue"

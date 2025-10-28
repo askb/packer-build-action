@@ -1,3 +1,4 @@
+---
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: 2025 The Linux Foundation
 
@@ -46,20 +47,20 @@ jobs:
         continue-on-error: true
         run: |
           set +e  # Don't exit on errors, we want to collect all diagnostics
-          
+
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "🔍 TAILSCALE NETWORK CONNECTIVITY DIAGNOSTICS"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
-          
+
           BASTION_IP="${{ steps.bastion.outputs.bastion_ip }}"
           BASTION_NAME="network-test-${{ github.run_id }}"
-          
+
           echo "📋 Configuration:"
           echo "  Bastion IP: $BASTION_IP"
           echo "  Bastion Name: $BASTION_NAME"
           echo ""
-          
+
           # Get runner's Tailscale IP
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "📊 Runner Tailscale Status"
@@ -67,15 +68,15 @@ jobs:
           RUNNER_TS_IP=$(tailscale ip -4 2>/dev/null || echo "unknown")
           echo "Runner Tailscale IP: $RUNNER_TS_IP"
           echo ""
-          
+
           echo "Full Tailscale status:"
           sudo tailscale status || echo "Failed to get tailscale status"
           echo ""
-          
+
           echo "Tailscale network check:"
           sudo tailscale netcheck || echo "Failed to run netcheck"
           echo ""
-          
+
           # Test 1: Ping bastion
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "Test 1: Ping Bastion"
@@ -88,7 +89,7 @@ jobs:
             PING_OK=false
           fi
           echo ""
-          
+
           # Test 2: TCP connectivity to SSH port
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "Test 2: TCP Port 22 Connectivity"
@@ -101,7 +102,7 @@ jobs:
             PORT_OK=false
           fi
           echo ""
-          
+
           # Test 3: SSH connection attempts with verbose logging
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "Test 3: SSH Connection Test (Verbose)"
@@ -119,7 +120,7 @@ jobs:
             SSH_OK=false
           fi
           echo ""
-          
+
           # Test 4: Tailscale SSH (if available)
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "Test 4: Tailscale SSH Test"
@@ -132,7 +133,7 @@ jobs:
             TS_SSH_OK=false
           fi
           echo ""
-          
+
           # Test 5: Check if bastion can be resolved
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "Test 5: DNS/Name Resolution"
@@ -143,28 +144,28 @@ jobs:
             echo "⚠️  Cannot resolve bastion hostname (might be expected)"
           fi
           echo ""
-          
+
           # Test 6: Traceroute to bastion
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "Test 6: Traceroute to Bastion"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           traceroute -m 10 -w 2 "$BASTION_IP" 2>&1 || echo "Traceroute failed"
           echo ""
-          
+
           # Test 7: Check Tailscale routes
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "Test 7: Tailscale Routes"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           ip route show | grep -E "100\.|tailscale" || echo "No Tailscale routes found"
           echo ""
-          
+
           # Test 8: Check if bastion is responding to ICMP at all
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "Test 8: Extended Ping Test (30 packets)"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           ping -c 30 -i 0.5 -W 2 "$BASTION_IP" 2>&1 | tail -20
           echo ""
-          
+
           # Summary
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "📊 DIAGNOSTIC SUMMARY"
@@ -178,12 +179,12 @@ jobs:
           [ "$SSH_OK" = "true" ] && echo "  ✅ SSH" || echo "  ❌ SSH"
           [ "$TS_SSH_OK" = "true" ] && echo "  ✅ Tailscale SSH" || echo "  ❌ Tailscale SSH"
           echo ""
-          
+
           # Set outputs
           echo "ping_ok=$PING_OK" >> "$GITHUB_OUTPUT"
           echo "ssh_ok=$SSH_OK" >> "$GITHUB_OUTPUT"
           echo "bastion_ip=$BASTION_IP" >> "$GITHUB_OUTPUT"
-          
+
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
           echo "⏰ Keeping bastion alive for ${{ github.event.inputs.keep_bastion_alive || '30' }} minutes for manual inspection..."
@@ -199,7 +200,7 @@ jobs:
           echo "   - Network configuration"
           echo "   - SSH service status"
           echo ""
-          
+
           # Keep alive for manual debugging
           WAIT_MINUTES=${{ github.event.inputs.keep_bastion_alive || '30' }}
           if [ "$WAIT_MINUTES" -gt 0 ]; then
@@ -211,22 +212,22 @@ jobs:
         if: always()
         run: |
           DECODED_PASSWORD=$(echo "${{ secrets.OPENSTACK_PASSWORD_B64 }}" | base64 -d)
-          
+
           export OS_AUTH_URL="${{ secrets.OPENSTACK_AUTH_URL }}"
           export OS_PROJECT_ID="${{ secrets.OPENSTACK_PROJECT_ID }}"
           export OS_USERNAME="${{ secrets.OPENSTACK_USERNAME }}"
           export OS_PASSWORD="$DECODED_PASSWORD"
           export OS_REGION_NAME="${{ secrets.OPENSTACK_REGION }}"
           export OS_IDENTITY_API_VERSION=3
-          
+
           pip3 install -q python-openstackclient
-          
+
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "📋 Bastion Instance Details"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           openstack server show "network-test-${{ github.run_id }}" || echo "Instance not found"
           echo ""
-          
+
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "📋 Bastion Console Log (last 100 lines)"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -260,7 +261,7 @@ jobs:
             else
               echo "- ❌ **Ping**: Failed"
             fi
-            
+
             if [[ "${{ steps.diagnostics.outputs.ssh_ok }}" == "true" ]]; then
               echo "- ✅ **SSH**: Success"
             else

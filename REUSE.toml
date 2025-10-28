@@ -1,0 +1,22 @@
+version = 1
+
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2025 The Linux Foundation
+
+SPDX-PackageName = "packer-build-action"
+SPDX-PackageSupplier = "The Linux Foundation"
+SPDX-PackageDownloadLocation = "https://github.com/askb/packer-build-action"
+
+[[annotations]]
+path = [
+    "**.md",
+    "**.yaml",
+    "**.yml",
+    "**.py",
+    "**.sh",
+    "**.hcl",
+    "**.pkr.hcl"
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2025 The Linux Foundation"
+SPDX-License-Identifier = "Apache-2.0"

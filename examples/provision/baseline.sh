@@ -1,6 +1,8 @@
 #!/bin/bash
-# Baseline provisioning script for Ubuntu images
 # SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2025 The Linux Foundation
+#
+# Baseline provisioning script for Ubuntu images
 
 set -eux -o pipefail
 
