@@ -58,10 +58,9 @@ fi
 # Add variables file
 PACKER_ARGS+=(-var-file="$VARS_FILE")
 
-# Add bastion host if provided
+# Add bastion host if provided (passed as ssh_proxy_host for Tailscale)
 if [[ -n "$BASTION_IP" ]]; then
-    PACKER_ARGS+=(-var=bastion_host="$BASTION_IP")
-    PACKER_ARGS+=(-var=bastion_user=root)
+    PACKER_ARGS+=(-var=ssh_proxy_host="$BASTION_IP")
 fi
 
 # Add template
