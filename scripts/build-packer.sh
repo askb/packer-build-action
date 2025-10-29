@@ -14,6 +14,7 @@ set -euo pipefail
 TEMPLATE="${PACKER_TEMPLATE:-}"
 VARS_FILE="${PACKER_VARS_FILE:-}"
 BASTION_IP="${BASTION_IP:-}"
+BASTION_SSH_USER="${BASTION_SSH_USER:-root}"
 
 if [[ -z "$TEMPLATE" ]]; then
     echo "❌ Error: PACKER_TEMPLATE environment variable is required"
@@ -41,6 +42,7 @@ echo "======================================="
 echo "Template: $TEMPLATE"
 echo "Vars File: $VARS_FILE"
 echo "Bastion IP: ${BASTION_IP:-<not set>}"
+echo "Bastion User: ${BASTION_SSH_USER}"
 echo "======================================="
 
 # Initialize Packer plugins
@@ -61,7 +63,7 @@ PACKER_ARGS+=(-var-file="$VARS_FILE")
 # Add bastion host if provided
 if [[ -n "$BASTION_IP" ]]; then
     PACKER_ARGS+=(-var=ssh_bastion_host="$BASTION_IP")
-    PACKER_ARGS+=(-var=ssh_bastion_username=root)
+    PACKER_ARGS+=(-var=ssh_bastion_username="${BASTION_SSH_USER:-root}")
     PACKER_ARGS+=(-var=ssh_bastion_agent_auth=true)
 fi
 
