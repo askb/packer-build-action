@@ -93,22 +93,28 @@ variable "distro" {
 # Bastion Host Variables
 # ========================================
 
-variable "bastion_host" {
+variable "ssh_bastion_host" {
   type        = string
   default     = ""
   description = "Bastion host IP address (from Tailscale). Leave empty for direct connection."
 }
 
-variable "bastion_user" {
+variable "ssh_bastion_username" {
   type        = string
   default     = "root"
   description = "SSH user for bastion host"
 }
 
-variable "bastion_port" {
+variable "ssh_bastion_port" {
   type        = number
   default     = 22
   description = "SSH port for bastion host"
+}
+
+variable "ssh_bastion_agent_auth" {
+  type        = bool
+  default     = true
+  description = "Enable SSH agent authentication for bastion"
 }
 
 # ========================================
@@ -169,10 +175,10 @@ source "openstack" "builder" {
   # Even though Tailscale doesn't use the agent, Packer requires one auth method.
   # The SSH agent will be started (potentially empty) to satisfy this requirement.
   # Tailscale handles the actual authentication when the connection is made.
-  ssh_bastion_host              = var.bastion_host != "" ? var.bastion_host : null
-  ssh_bastion_username          = var.bastion_host != "" ? var.bastion_user : null
-  ssh_bastion_port              = var.bastion_host != "" ? var.bastion_port : null
-  ssh_bastion_agent_auth        = var.bastion_host != "" ? true : null
+  ssh_bastion_host              = var.ssh_bastion_host != "" ? var.ssh_bastion_host : null
+  ssh_bastion_username          = var.ssh_bastion_host != "" ? var.ssh_bastion_username : null
+  ssh_bastion_port              = var.ssh_bastion_host != "" ? var.ssh_bastion_port : null
+  ssh_bastion_agent_auth        = var.ssh_bastion_host != "" ? var.ssh_bastion_agent_auth : null
 
   # Connection settings
   communicator                  = "ssh"
@@ -191,7 +197,7 @@ source "openstack" "builder" {
   image_visibility = "private"
 
   # Floating IP (not needed with bastion)
-  use_floating_ip = var.bastion_host != "" ? false : true
+  use_floating_ip = var.ssh_bastion_host != "" ? false : true
 }
 
 # ========================================

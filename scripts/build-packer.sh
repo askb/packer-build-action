@@ -60,8 +60,9 @@ PACKER_ARGS+=(-var-file="$VARS_FILE")
 
 # Add bastion host if provided
 if [[ -n "$BASTION_IP" ]]; then
-    PACKER_ARGS+=(-var=bastion_host="$BASTION_IP")
-    PACKER_ARGS+=(-var=bastion_user=root)
+    PACKER_ARGS+=(-var=ssh_bastion_host="$BASTION_IP")
+    PACKER_ARGS+=(-var=ssh_bastion_username=root)
+    PACKER_ARGS+=(-var=ssh_bastion_agent_auth=true)
 fi
 
 # Add template
