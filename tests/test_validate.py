@@ -58,6 +58,12 @@ def test_validate_script_valid_template():
         valid_template = '''
 packer {
   required_version = ">= 1.10.0"
+  required_plugins {
+    null = {
+      version = "~> 3.2"
+      source  = "github.com/hashicorp/null"
+    }
+  }
 }
 
 source "null" "example" {
