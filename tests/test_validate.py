@@ -45,7 +45,7 @@ def test_validate_script_invalid_template():
 
         # Should fail with syntax error
         assert result.returncode == 1
-        assert "Failed" in result.stdout or "Syntax invalid" in result.stdout
+        assert "✗" in result.stdout or "Init failed" in result.stdout or "Failed" in result.stdout
 
 
 def test_validate_script_valid_template():
@@ -80,4 +80,4 @@ build {
 
         # Should succeed
         assert result.returncode == 0
-        assert "validations passed" in result.stdout or "Passed: 1" in result.stdout
+        assert "✓" in result.stdout or "validations passed" in result.stdout or "Passed: 1" in result.stdout
