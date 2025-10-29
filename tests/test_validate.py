@@ -45,7 +45,7 @@ def test_validate_script_invalid_template():
 
         # Should fail with syntax error
         assert result.returncode == 1
-        assert ("Init failed" in result.stdout or "Syntax invalid" in result.stdout or 
+        assert ("Init failed" in result.stdout or "Syntax invalid" in result.stdout or
                 "Failed: 1" in result.stdout or "Failed:" in result.stdout)
 
 
