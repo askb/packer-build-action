@@ -309,8 +309,9 @@ runs:
           PACKER_CMD="$PACKER_CMD -var-file=cloud-env.json"
           PACKER_CMD="$PACKER_CMD -var-file=$VARS_FILE"
           if [[ -n "${{ inputs.bastion_ip }}" ]]; then
-            PACKER_CMD="$PACKER_CMD -var bastion_host=${{ inputs.bastion_ip }}"
-            PACKER_CMD="$PACKER_CMD -var bastion_user=${{ inputs.bastion_ssh_user }}"
+            PACKER_CMD="$PACKER_CMD -var ssh_bastion_host=${{ inputs.bastion_ip }}"
+            PACKER_CMD="$PACKER_CMD -var ssh_bastion_username=${{ inputs.bastion_ssh_user }}"
+            PACKER_CMD="$PACKER_CMD -var ssh_bastion_agent_auth=true"
           fi
           PACKER_CMD="$PACKER_CMD $TEMPLATE"
 
