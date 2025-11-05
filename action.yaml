@@ -184,7 +184,7 @@ runs:
         elif [[ -n "${{ inputs.openstack_auth_url }}" ]]; then
           # Decode password - it's expected to be base64 encoded
           # Try to decode, if it fails, use as-is
-          if DECODED_PASSWORD=$(echo "${{ inputs.openstack_password }}" | base64 -d 2>/dev/null); then
+          if DECODED_PASSWORD=$(printf '%s' "${{ inputs.openstack_password }}" | base64 -d 2>/dev/null); then
             echo "✅ Password decoded from base64"
           else
             DECODED_PASSWORD="${{ inputs.openstack_password }}"
@@ -226,8 +226,8 @@ runs:
 
           # Decode password if it's base64 encoded
           password="${{ inputs.openstack_password }}"
-          if echo "$password" | base64 -d &> /dev/null; then
-            password=$(echo "$password" | base64 -d)
+          if printf '%s' "$password" | base64 -d &> /dev/null; then
+            password=$(printf '%s' "$password" | base64 -d)
           fi
 
           cat > "$HOME/.config/openstack/clouds.yaml" << EOF
