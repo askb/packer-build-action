@@ -200,7 +200,6 @@ runs:
             --arg password "${DECODED_PASSWORD}" \
             --arg region "${{ inputs.openstack_region }}" \
             --arg network "${{ inputs.openstack_network_id }}" \
-            --arg ssh_proxy "${{ inputs.bastion_ip }}" \
             '{
               cloud_auth_url: $auth_url,
               cloud_tenant_name: $tenant,
@@ -208,8 +207,7 @@ runs:
               cloud_username: $username,
               cloud_password: $password,
               cloud_region: $region,
-              cloud_network: $network,
-              ssh_proxy_host: $ssh_proxy
+              cloud_network: $network
             }' > cloud-env.json
 
           echo "✅ Created cloud-env.json configuration"
