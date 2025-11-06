@@ -205,7 +205,6 @@ source "openstack" "builder" {
 # ========================================
 
 build {
-  name    = "builder-${var.distro}"
   sources = ["source.openstack.builder"]
 
   # Wait for cloud-init to complete
