@@ -254,12 +254,16 @@ runs:
 
         TEMPLATE="${{ inputs.packer_template }}"
         if [[ -n "$TEMPLATE" ]]; then
-          packer init "$TEMPLATE"
+          # Extract template name for selective plugin initialization
+          TEMPLATE_NAME=$(basename "$TEMPLATE" .pkr.hcl)
+          echo "Initializing plugins for OpenStack source: $TEMPLATE_NAME..."
+          # Use -upgrade to ensure plugins are installed
+          packer init -upgrade "$TEMPLATE" || true
         else
           # Init all templates if no specific template provided
           for template in $(find . -name "*.pkr.hcl" -type f); do
             echo "Initializing $template..."
-            packer init "$template"
+            packer init -upgrade "$template"
           done
         fi
 
