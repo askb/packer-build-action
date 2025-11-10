@@ -149,7 +149,7 @@ runs:
     - name: Setup Packer
       uses: hashicorp/setup-packer@1aa358be5cf73883762b302a3a03abd66e75b232 # v3.1.0
       with:
-        version: "1.9.1"  # Hardcoded for testing, ignoring input
+        version: ${{ inputs.packer_version }}
 
     - name: Install Ansible and dependencies
       shell: bash
