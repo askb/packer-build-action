@@ -47,7 +47,7 @@ inputs:
   path_prefix:
     description: "Directory path prefix for action execution"
     required: false
-    default: "target-repo"
+    default: "."
   packer_version:
     description: "Packer version to use"
     required: false
