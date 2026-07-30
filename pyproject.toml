@@ -77,3 +77,55 @@ reportUntypedClassDecorator = "none"
 reportUnnecessaryIsInstance = "none"
 reportPossiblyUnboundVariable = "warning"
 reportMissingParameterType = "warning"
+
+# Pin the ruff rule set explicitly.
+#
+# Without a `select`, ruff applies its *default* rule set, and that
+# default is not stable across releases:
+#
+#     ruff 0.15.22 ->  59 rules across  2 categories (E, F)
+#     ruff 0.16.0  -> 413 rules across 38 categories
+#
+# A routine `pre-commit autoupdate` crossing that boundary changed which
+# rules run and broke repositories across this organisation, on code
+# nobody had touched.  Here it surfaced six PLW1510 findings in the test
+# suite, all on code that had not been modified.
+#
+# The selection below is the de facto standard across this organisation,
+# present as a superset in 13 of the 16 repositories that already pin
+# their rules.  This repository is already clean under it, so pinning
+# changes no behaviour today: both ruff 0.15.22 and 0.16.0 report all
+# checks passing.
+#
+# Rules outside the selection are disabled for now; that is the point.
+# This is not a permanent exclusion, and it is not a judgement that those
+# rules lack merit.  It makes adopting any of them a deliberate, reviewed
+# opt-in rather than something that arrives unannounced with a version
+# bump.
+#
+# Note that this pins the rule set at CATEGORY level, not rule level.
+# Ruff selectors are prefixes, so a future release adding new E* or F*
+# rules would enable them here automatically.  The aim is to bound the
+# blast radius, not to freeze the set outright.
+#
+# `line-length` and `target-version` are intentionally left unset so
+# ruff's own defaults continue to apply unchanged.
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "C4", "UP"]
+
+ignore = [
+    "E501", # line-too-long: the formatter owns line length
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Test suites legitimately break rules that matter in library code.
+#
+# None of these codes is reachable under the current `select`.  They are
+# listed anyway so that a later widening, to "S", "ARG" or "PL", does not
+# immediately flag every test module.  PLR0917 is the concrete case
+# already seen elsewhere in this organisation: tests stacking @patch
+# decorators cannot satisfy it, because unittest.mock injects its mocks
+# positionally, so a keyword-only signature is impossible rather than
+# merely inconvenient.
+"tests/**/*.py" = ["S101", "ARG", "PLR0913", "PLR0917", "PLR2004"]
