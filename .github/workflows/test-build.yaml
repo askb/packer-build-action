@@ -13,16 +13,14 @@ on:
       - "action.yaml"
       - "examples/**"
       - ".github/workflows/test-build.yaml"
-  # Fork PRs cannot access OpenStack/Tailscale secrets, so this suite is
-  # shown but skipped on them by default. A maintainer can opt a fork PR
-  # in by applying the 'safe to test' label: the entry job then runs via
-  # the 'integration' environment (required reviewers), with the checkout
-  # pinned to the PR head SHA. The workflow definition is always taken
-  # from the base branch; untrusted PR code only executes after approval.
-  pull_request_target:  # zizmor: ignore[dangerous-triggers]
+  # Deliberately pull_request (not pull_request_target): the job checks out
+  # and runs the code under test, so it must stay unprivileged. Fork PRs
+  # and Dependabot receive no secrets and cannot reach the OpenStack
+  # tenant, so the job skips on them. To exercise fork code, push its head
+  # to a branch in this repository and raise a pull request from there.
+  pull_request:
     branches:
       - main
-    types: [opened, synchronize, reopened, labeled]
     paths:
       - "action.yaml"
       - "examples/**"
@@ -42,31 +40,26 @@ permissions:
   contents: read
 
 concurrency:
-  # Use a per-PR key for pull_request_target runs (github.ref is the base
-  # branch ref under that event, so it would otherwise collide across PRs);
-  # fall back to github.ref for push and workflow_dispatch.
+  # Use a per-PR key for pull_request runs (github.ref is the merge ref
+  # under that event); fall back to github.ref for push and
+  # workflow_dispatch.
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   integration-test:
     name: Integration Test - Build with Bastion
-    # Runs on push, workflow_dispatch, and same-repo PRs automatically.
-    # Fork PRs run only when a maintainer adds the 'safe to test' label
-    # (otherwise the job is shown but skipped).
+    # Runs on push, workflow_dispatch and same-repository pull requests.
+    # Fork PRs and Dependabot receive no secrets, so skip rather than fail
+    # part-way through provisioning.
     if: >-
       github.actor != 'dependabot[bot]' &&
-      (github.event_name == 'push' ||
-       github.event_name == 'workflow_dispatch' ||
-       (github.event_name == 'pull_request_target' &&
-        (github.event.pull_request.head.repo.full_name == github.repository ||
-         contains(github.event.pull_request.labels.*.name, 'safe to test'))))
-    # Gate fork-PR runs behind the 'integration' environment (required
-    # reviewers). Trusted events (push, dispatch, same-repo PRs) use the
-    # unprotected 'integration-auto' environment, which has no reviewers
-    # and runs without delay.
-    # yamllint disable-line rule:line-length
-    environment: ${{ (github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name != github.repository) && 'integration' || 'integration-auto' }}
+      (github.event_name != 'pull_request' ||
+       github.event.pull_request.head.repo.full_name == github.repository)
+    # Scopes the OpenStack and Tailscale secrets to a dedicated
+    # environment. No reviewers are configured: the trigger is
+    # pull_request, so fork PRs never receive secrets and need no gate.
+    environment: integration-auto
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
@@ -79,12 +72,6 @@ jobs:
       - name: Checkout packer-build-action
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # For fork PRs this is the (reviewer-approved) PR head repo and
-          # SHA; for push and same-repo events it falls back to the base
-          # repository and triggering SHA.
-          # yamllint disable-line rule:line-length
-          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           path: action-repo
           persist-credentials: false
 
