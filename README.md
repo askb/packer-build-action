@@ -122,16 +122,24 @@ jobs:
 
 ### Optional Inputs
 
-| Input                | Description               | Default       |
-| -------------------- | ------------------------- | ------------- |
-| `packer_template`    | Path to Packer template   | Auto-discover |
-| `packer_vars_file`   | Path to vars file         | Auto-discover |
-| `packer_working_dir` | Working directory         | `.`           |
-| `path_prefix`        | Path prefix for execution | `target-repo` |
-| `packer_version`     | Packer version            | `1.11.2`      |
-| `ansible_version`    | Ansible version           | `2.17.0`      |
-| `python_version`     | Python version            | `3.11`        |
-| `bastion_ssh_user`   | SSH user for bastion      | `ubuntu`      |
+| Input                | Description               | Default               |
+| -------------------- | ------------------------- | --------------------- |
+| `packer_template`    | Path to Packer template   | Auto-discover         |
+| `packer_vars_file`   | Path to vars file         | Auto-discover         |
+| `packer_working_dir` | Working directory         | `.`                   |
+| `path_prefix`        | Path prefix for execution | `target-repo`         |
+| `packer_version`     | Packer version            | `1.11.2`              |
+| `ansible_version`    | Ansible version           | `2.17.0`              |
+| `python_version`     | Python version            | `3.11`                |
+| `bastion_ssh_user`   | SSH user for bastion      | `ubuntu`              |
+| `github_token`       | Token for plugin fetches  | `${{ github.token }}` |
+
+`github_token` authenticates the GitHub API calls Packer makes when it
+resolves plugins during `packer init`. GitHub caps unauthenticated calls at
+60 an hour per runner egress IP, which makes plugin resolution fail
+intermittently with a `403`. Packer reads public repositories here, so the
+default workflow token suffices even when the caller grants it no
+permissions.
 
 ## Outputs
 

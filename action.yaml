@@ -106,6 +106,13 @@ inputs:
     required: false
     default: "3.11"
 
+  # Plugin Retrieval
+  github_token:
+    # yamllint disable-line rule:line-length
+    description: "Token used to authenticate Packer's plugin downloads from GitHub"
+    required: false
+    default: "${{ github.token }}"
+
 outputs:
   validation_result:
     description: "Validation result summary"
@@ -328,6 +335,13 @@ runs:
       working-directory: ${{ inputs.path_prefix }}/${{ inputs.packer_working_dir }}
       env:
         PACKER_TEMPLATE: ${{ inputs.packer_template }}
+        # Packer resolves plugins through the GitHub API. Unauthenticated
+        # calls are limited to 60 an hour per IP, shared across every job
+        # leaving the same runner egress address, so `packer init` fails
+        # intermittently with a 403. A token raises that to 5000 an hour.
+        # Only public reads are made, so a token with no permissions is
+        # enough; it is the authentication that lifts the limit.
+        PACKER_GITHUB_API_TOKEN: ${{ inputs.github_token }}
       run: |
         set -euo pipefail
         echo "🔌 Initializing Packer plugins..."
@@ -359,6 +373,9 @@ runs:
         BASTION_IP: ${{ inputs.bastion_ip }}
         BASTION_SSH_USER: ${{ inputs.bastion_ssh_user }}
         ACTION_PATH: ${{ github.action_path }}
+        # build-packer.sh and validate-packer.sh both run `packer init`
+        # themselves, so they need the same authentication as the step above.
+        PACKER_GITHUB_API_TOKEN: ${{ inputs.github_token }}
       run: |
         set -euo pipefail
 
