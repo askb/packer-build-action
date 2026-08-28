@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 The Linux Foundation
+
+# OpenStack CLI used by the bastion diagnostics step in
+# .github/workflows/test-network-connectivity.yaml.
+#
+# Regenerate requirements.txt after editing this file:
+#
+#     uv pip compile .github/openstack/requirements.in --universal \
+#       --generate-hashes --no-annotate --no-header \
+#       --python-version 3.11 -o .github/openstack/requirements.txt
+
+python-openstackclient

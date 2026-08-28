@@ -17,3 +17,23 @@ updates:
     cooldown:
       default-days: 7
     open-pull-requests-limit: 15
+
+  # The hash-pinned locks cannot pick up fixes on their own; Dependabot
+  # regenerates them (digests included) as releases appear.
+  - package-ecosystem: "pip"
+    directory: "/tests"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "CI(deps)"
+    cooldown:
+      default-days: 7
+
+  - package-ecosystem: "pip"
+    directory: "/.github/openstack"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "CI(deps)"
+    cooldown:
+      default-days: 7
