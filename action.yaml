@@ -354,11 +354,15 @@ runs:
           # Use -upgrade to ensure plugins are installed
           packer init -upgrade "$TEMPLATE" || true
         else
-          # Init all templates if no specific template provided
-          for template in $(find . -name "*.pkr.hcl" -type f); do
+          # Init all templates if no specific template provided.
+          # -print0 with a null-delimited read keeps paths containing
+          # spaces, tabs or newlines intact. An unquoted $(find ...)
+          # in a for loop splits them on IFS and glob-expands the
+          # results (shellcheck SC2044).
+          while IFS= read -r -d '' template; do
             echo "Initializing $template..."
             packer init -upgrade "$template"
-          done
+          done < <(find . -name "*.pkr.hcl" -type f -print0)
         fi
 
     - name: Execute Packer operation

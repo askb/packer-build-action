@@ -59,3 +59,35 @@ jobs:
             echo "## Test Results"
             echo "✅ Validation test completed"
           } >> "${GITHUB_STEP_SUMMARY}"
+
+  test-template-discovery:
+    name: Test Template Discovery
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Harden the runner
+        # yamllint disable-line rule:line-length
+        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout packer-build-action
+        # yamllint disable-line rule:line-length
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Covers template discovery directly, with a stub packer, because
+      # the end-to-end job above cannot reach it: the test repository
+      # exposes its templates through a common-packer symlink, and find
+      # does not descend a symlinked starting point, so discovery finds
+      # nothing there. See issue for that separate defect.
+      - name: Run template discovery regression tests
+        shell: bash
+        run: |
+          # Run template discovery regression tests
+          # PyYAML lets the test read the init fallback out of the
+          # action metadata rather than keeping a copy of it.
+          python3 -m pip install --disable-pip-version-check -q pyyaml
+          bash tests/test-template-discovery.sh
