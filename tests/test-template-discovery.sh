@@ -9,13 +9,13 @@
 # string and iterate it unquoted, which split any path containing
 # whitespace into several non-existent paths.
 #
-# Running the action end to end cannot cover this reliably: the test
-# repository exposes its templates through a `common-packer` symlink,
-# and find does not descend a symlinked starting point, so discovery
-# returns nothing and the run passes without validating anything.
+# Running the action end to end does not cover these cases well. The
+# validation workflow checks out one external repository, so it can
+# only ever exercise whatever layout that repository happens to have,
+# and it needs Packer and the network to do it.
 #
-# This exercises the real script against controlled fixture trees with a
-# stub packer on PATH, so template discovery is what is under test
+# This exercises the real script against controlled fixture trees with
+# a stub packer on PATH, so template discovery is what is under test
 # rather than Packer itself. It needs no network and no Packer install.
 #############################################################################
 
