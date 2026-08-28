@@ -39,10 +39,15 @@ echo "Searching for Packer templates in: $PACKER_DIR"
 # IFS and glob-expands, so any path containing whitespace breaks apart
 # into several non-existent paths. shellcheck does not flag that form,
 # because splitting in a `for` is usually deliberate.
+#
+# The trailing slash on the search directory matters. common-packer is
+# conventionally a symlink, and find does not descend a symlinked
+# starting point, so without it discovery silently returns nothing and
+# validation reports success having checked no templates at all.
 TEMPLATES=()
 while IFS= read -r -d '' template; do
     TEMPLATES+=("$template")
-done < <(find "$PACKER_DIR" -name "*.pkr.hcl" -type f -print0 2>/dev/null)
+done < <(find "$PACKER_DIR/" -name "*.pkr.hcl" -type f -print0 2>/dev/null)
 
 if [[ ${#TEMPLATES[@]} -eq 0 ]]; then
     echo -e "${YELLOW}⚠️  No Packer templates found${NC}"

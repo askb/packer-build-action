@@ -23,8 +23,10 @@ fi
 
 echo "Searching for Packer files in: $PACKER_DIR"
 
-# Find templates
-TEMPLATES=$(find "$PACKER_DIR" -name "*.pkr.hcl" -type f 2>/dev/null || echo "")
+# Find templates. The trailing slash matters: common-packer is
+# conventionally a symlink, and find does not descend a symlinked
+# starting point, so without it discovery silently returns nothing.
+TEMPLATES=$(find "$PACKER_DIR/" -name "*.pkr.hcl" -type f 2>/dev/null || echo "")
 
 if [[ -z "$TEMPLATES" ]]; then
     echo "No Packer templates found"

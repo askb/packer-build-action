@@ -155,4 +155,33 @@ grep -qx 'arg=./my templates/spaced name.pkr.hcl' "$STUB_LOG" ||
 
 echo 'ok: init fallback passes a spaced path to packer intact'
 
+#############################################################################
+# A symlinked search directory is followed.
+#
+# common-packer is conventionally a symlink, and find does not descend
+# a symlinked starting point. Without the trailing slash on the search
+# directory, discovery returns nothing and validation reports success
+# having checked no templates at all.
+#############################################################################
+case4="$workdir/symlink"
+mkdir -p "$case4/templates"
+write_template "$case4/templates/via-symlink.pkr.hcl"
+ln -s . "$case4/common-packer"
+
+export STUB_LOG="$workdir/symlink.log"
+: > "$STUB_LOG"
+
+if ! (cd "$case4" && bash "$VALIDATE") > "$workdir/symlink.out" 2>&1; then
+    fail "symlinked directory failed: $(cat "$workdir/symlink.out")"
+fi
+
+if grep -q 'No Packer templates found' "$workdir/symlink.out"; then
+    fail "discovery skipped the symlink: $(cat "$workdir/symlink.out")"
+fi
+
+grep -q 'Passed: 1' "$workdir/symlink.out" ||
+    fail "expected one template via symlink: $(cat "$workdir/symlink.out")"
+
+echo 'ok: symlinked search directory is followed'
+
 echo 'All template discovery checks passed ✅'
