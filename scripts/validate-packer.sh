@@ -34,20 +34,27 @@ fi
 
 echo "Searching for Packer templates in: $PACKER_DIR"
 
-# Find all .pkr.hcl files
-TEMPLATES=$(find "$PACKER_DIR" -name "*.pkr.hcl" -type f 2>/dev/null || true)
+# Find all .pkr.hcl files. Read null-delimited results into an array:
+# a newline-separated string iterated as `for t in $TEMPLATES` splits on
+# IFS and glob-expands, so any path containing whitespace breaks apart
+# into several non-existent paths. shellcheck does not flag that form,
+# because splitting in a `for` is usually deliberate.
+TEMPLATES=()
+while IFS= read -r -d '' template; do
+    TEMPLATES+=("$template")
+done < <(find "$PACKER_DIR" -name "*.pkr.hcl" -type f -print0 2>/dev/null)
 
-if [[ -z "$TEMPLATES" ]]; then
+if [[ ${#TEMPLATES[@]} -eq 0 ]]; then
     echo -e "${YELLOW}⚠️  No Packer templates found${NC}"
     exit 0
 fi
 
 echo "Found templates:"
-echo "$TEMPLATES"
+printf '%s\n' "${TEMPLATES[@]}"
 echo ""
 
 # Validate each template
-for template in $TEMPLATES; do
+for template in "${TEMPLATES[@]}"; do
     echo "Validating: $template"
 
     # Initialize Packer
