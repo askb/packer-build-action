@@ -87,4 +87,7 @@ jobs:
         shell: bash
         run: |
           # Run template discovery regression tests
+          # PyYAML lets the test read the init fallback out of the
+          # action metadata rather than keeping a copy of it.
+          python3 -m pip install --disable-pip-version-check -q pyyaml
           bash tests/test-template-discovery.sh

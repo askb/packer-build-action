@@ -108,4 +108,51 @@ grep -q 'No Packer templates found' "$workdir/empty.out" ||
 
 echo 'ok: empty tree reported without invoking packer'
 
+#############################################################################
+# The plugin-init fallback in action.yaml handles spaces too.
+#
+# That loop lives inline in the action, so it is read out of the
+# metadata rather than copied here, and cannot drift from it. It is a
+# separate implementation from the one above and needs its own cover.
+#############################################################################
+init_script="$workdir/init-fallback.sh"
+python3 - "$SCRIPT_DIR/../action.yaml" > "$init_script" <<'EXTRACT'
+import sys
+
+import yaml
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    action = yaml.safe_load(handle)
+
+wanted = "Initialize Packer plugins"
+for step in action["runs"]["steps"]:
+    if step.get("name") == wanted:
+        print(step["run"])
+        break
+else:  # pragma: no cover - guards against a rename
+    raise SystemExit(f"step not found in action.yaml: {wanted}")
+EXTRACT
+
+case3="$workdir/init"
+mkdir -p "$case3/my templates"
+write_template "$case3/my templates/spaced name.pkr.hcl"
+
+export STUB_LOG="$workdir/init.log"
+: > "$STUB_LOG"
+
+# The fallback runs when no explicit template is supplied.
+if ! (cd "$case3" && PACKER_TEMPLATE='' bash "$init_script") \
+    > "$workdir/init.out" 2>&1; then
+    fail "init fallback failed: $(cat "$workdir/init.out")"
+fi
+
+grep -qx 'arg=./my templates/spaced name.pkr.hcl' "$STUB_LOG" ||
+    fail "init fallback split the path: $(cat "$STUB_LOG")"
+
+# One template means exactly one init invocation.
+[ "$(grep -c '^argc=' "$STUB_LOG")" -eq 1 ] ||
+    fail "expected a single packer init: $(cat "$STUB_LOG")"
+
+echo 'ok: init fallback passes a spaced path to packer intact'
+
 echo 'All template discovery checks passed ✅'
