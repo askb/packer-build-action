@@ -60,8 +60,11 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[test]"
+          # --require-hashes makes pip refuse anything the lock does not
+          # cover by digest, so a compromised index cannot substitute a
+          # package. The lock is generated from the "test" extra in
+          # pyproject.toml, which remains the source of truth.
+          python -m pip install --require-hashes -r tests/requirements.txt
 
       - name: Install Packer
         run: |
