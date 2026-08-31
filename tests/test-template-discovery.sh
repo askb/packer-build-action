@@ -9,13 +9,13 @@
 # string and iterate it unquoted, which split any path containing
 # whitespace into several non-existent paths.
 #
-# Running the action end to end cannot cover this reliably: the test
-# repository exposes its templates through a `common-packer` symlink,
-# and find does not descend a symlinked starting point, so discovery
-# returns nothing and the run passes without validating anything.
+# Running the action end to end does not cover these cases well. The
+# validation workflow checks out one external repository, so it can
+# only ever exercise whatever layout that repository happens to have,
+# and it needs Packer and the network to do it.
 #
-# This exercises the real script against controlled fixture trees with a
-# stub packer on PATH, so template discovery is what is under test
+# This exercises the real script against controlled fixture trees with
+# a stub packer on PATH, so template discovery is what is under test
 # rather than Packer itself. It needs no network and no Packer install.
 #############################################################################
 
@@ -154,5 +154,34 @@ grep -qx 'arg=./my templates/spaced name.pkr.hcl' "$STUB_LOG" ||
     fail "expected a single packer init: $(cat "$STUB_LOG")"
 
 echo 'ok: init fallback passes a spaced path to packer intact'
+
+#############################################################################
+# A symlinked search directory is followed.
+#
+# common-packer is conventionally a symlink, and find does not descend
+# a symlinked starting point. Without the trailing slash on the search
+# directory, discovery returns nothing and validation reports success
+# having checked no templates at all.
+#############################################################################
+case4="$workdir/symlink"
+mkdir -p "$case4/templates"
+write_template "$case4/templates/via-symlink.pkr.hcl"
+ln -s . "$case4/common-packer"
+
+export STUB_LOG="$workdir/symlink.log"
+: > "$STUB_LOG"
+
+if ! (cd "$case4" && bash "$VALIDATE") > "$workdir/symlink.out" 2>&1; then
+    fail "symlinked directory failed: $(cat "$workdir/symlink.out")"
+fi
+
+if grep -q 'No Packer templates found' "$workdir/symlink.out"; then
+    fail "discovery skipped the symlink: $(cat "$workdir/symlink.out")"
+fi
+
+grep -q 'Passed: 1' "$workdir/symlink.out" ||
+    fail "expected one template via symlink: $(cat "$workdir/symlink.out")"
+
+echo 'ok: symlinked search directory is followed'
 
 echo 'All template discovery checks passed ✅'

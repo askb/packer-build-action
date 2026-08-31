@@ -47,6 +47,35 @@ def test_discover_templates_no_templates():
         assert "No Packer templates found" in result.stdout
 
 
+def test_discover_templates_follows_symlinked_directory():
+    """Templates below a symlinked search directory are discovered.
+
+    ``common-packer`` is conventionally a symlink. ``[[ -d ]]`` follows
+    it, so the script selects it, but ``find`` does not descend a
+    symlinked starting point. Without a trailing slash on the search
+    directory the two disagree, and discovery silently returns nothing.
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        (root / "templates").mkdir()
+        (root / "templates" / "via-symlink.pkr.hcl").write_text("# test")
+        # No packer/ directory, so common-packer is what gets selected.
+        (root / "common-packer").symlink_to(".")
+
+        script_path = Path(__file__).parent.parent / "scripts" / "discover-templates.sh"
+        result = subprocess.run(
+            [str(script_path)],
+            cwd=tmpdir,
+            capture_output=True,
+            text=True,
+            env={**os.environ, "GITHUB_OUTPUT": str(root / "output.txt")},
+        )
+
+        assert "No Packer templates found" not in result.stdout, result.stdout
+        assert result.returncode == 0, result.stdout
+        assert "via-symlink.pkr.hcl" in result.stdout, result.stdout
+
+
 def test_discover_templates_finds_var_files():
     """Test that discover-templates.sh finds .pkrvars.hcl files."""
     with tempfile.TemporaryDirectory() as tmpdir:

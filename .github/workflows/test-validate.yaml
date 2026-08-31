@@ -78,11 +78,10 @@ jobs:
         with:
           persist-credentials: false
 
-      # Covers template discovery directly, with a stub packer, because
-      # the end-to-end job above cannot reach it: the test repository
-      # exposes its templates through a common-packer symlink, and find
-      # does not descend a symlinked starting point, so discovery finds
-      # nothing there. See issue for that separate defect.
+      # Focused regression cover for template discovery, run against
+      # the real script and the real action metadata with a stub
+      # packer. Complements the end-to-end job above, which can only
+      # exercise whatever layout the external test repository has.
       - name: Run template discovery regression tests
         shell: bash
         run: |
